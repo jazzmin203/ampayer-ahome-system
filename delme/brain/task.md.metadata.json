@@ -1,0 +1,6 @@
+{
+  "artifactType": "ARTIFACT_TYPE_TASK",
+  "summary": "Expanded Phase 5 to include specific modules for the complete portal: UseAuth hook, Role-based Sidebar, Games Management, Assignments, and User Management.",
+  "updatedAt": "2026-02-07T05:54:15.585750300Z",
+  "version": "15"
+}

@@ -1,0 +1,37 @@
+# Design Walkthrough: "Asociación de Ampayers del Profe Bernal" Platform
+
+This document summarizes the design work completed for the new platform.
+
+## 1. 🏗️ Architecture & Technology
+We have defined a **Hybrid SaaS Architecture**:
+-   **Core Strategy**: Django (Monolith) for stability + FastAPI (Microservice) for AI performance.
+-   **Database**: PostgreSQL for robust relational data.
+-   **Frontend**: React (Web) and React Native (Mobile) for a seamless cross-platform experience.
+
+## 2. 🗂️ Database Model Evolution
+We expanded the initial [models.py](file:///C:/Programacion_ampayers_para_IA/ampayer_project/core/models.py) to include:
+-   **Players**: Tracking stats and team history.
+-   **Play-by-Play**: A granular `Play` entity for deep analytics.
+-   **Availability**: `AvailabilityBlock` for AI scheduling.
+-   **Optimization**: Tracking AI inputs/outputs.
+
+## 3. 🎨 User Experience (UX)
+Defined flows for:
+-   **President**: Easy season setup and schedule generation.
+-   **Ampayer**: Quick accept/reject assignments via mobile push.
+-   **Scorer**: Offline-capable digital scorebook.
+
+## 4. 🧠 Artificial Intelligence
+The AI Engine will use **Constraint Programming (OR-Tools)** to:
+-   Minimize travel time.
+-   Maximize fairness in assignment distribution.
+-   Respect hard constraints (availability, level certification).
+
+## 5. 🚀 Roadmap
+A phased approach:
+1.  **MVP Core**: Users, Leagues, Basic Scheduling.
+2.  **Mobile App**: Scoring and Assignments.
+3.  **AI & Polish**: Optimization engine and premium UI.
+
+## Next Steps
+Please review the full [Implementation Plan](implementation_plan.md) for detailed technical specifications.

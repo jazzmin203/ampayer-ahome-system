@@ -1,0 +1,5 @@
+{
+  "artifactType": "ARTIFACT_TYPE_OTHER",
+  "summary": "Detailed architectural design for the AI/Optimization Engine. Covers the inputs, variables, hard/soft constraints for OR-Tools, and the Machine Learning feedback loop for predictive analytics.",
+  "updatedAt": "2026-02-07T04:52:14.746608500Z"
+}

@@ -1,0 +1,13 @@
+{
+    "include": [
+        "ampayer_project"
+    ],
+    "exclude": [
+        "**/node_modules",
+        "**/__pycache__"
+    ],
+    "venvPath": "c:/Programacion_ampayers_para_IA",
+    "venv": "env",
+    "reportMissingImports": "none",
+    "reportUnresolvedImport": "none"
+}

@@ -1,0 +1,11 @@
+{
+  "source_directories": [
+    "ampayer_project"
+  ],
+  "search_path": [
+    "env/Lib/site-packages"
+  ],
+  "exclude": [
+    "**/node_modules/**"
+  ]
+}

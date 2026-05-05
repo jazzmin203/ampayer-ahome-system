@@ -1,0 +1,35 @@
+# Task List for "Asociación de Ampayers del Profe Bernal" Platform Design
+
+- [x] **Phase 1: Analysis & Foundation**
+    - [x] Analyze existing [models.py](file:///C:/Programacion_ampayers_para_IA/ampayer_project/core/models.py) for current data structure. <!-- id: 0 -->
+    - [x] Create comprehensive [implementation_plan.md](file:///C:/Users/Sistemas/.gemini/antigravity/brain/12731a09-8610-43a1-b561-f8700d5ff5d2/implementation_plan.md) covering architecture, tech stack, and roadmap. <!-- id: 1 -->
+    - [x] Define user roles and permissions matrix details. <!-- id: 2 -->
+
+- [x] **Phase 2: Architectural Design & Implementation**
+    - [x] Refine and expand Database Model (Implement new entities). <!-- id: 4 -->
+    - [x] Define REST API endpoints structure (Serializers & Views). <!-- id: 5 -->
+    - [x] Design SaaS Technical Architecture (Backend, Frontend, Mobile, AI, DB). <!-- id: 3 -->
+
+- [x] **Phase 3: UX/UI & Functional Modules**
+    - [x] Create UX Flows for key personas (President, Ampayer, Scorer). <!-- id: 6 -->
+    - [x] Design Wireframes (text-based) for critical screens. <!-- id: 7 -->
+    - [x] Design the Digital Scoring Module (Logic & UI concepts). <!-- id: 8 -->
+
+- [x] **Phase 4: Advanced Features & Strategy**
+    - [x] Define AI Engine logic (Optimization, ML models). <!-- id: 9 -->
+    - [x] Design Security & Notification systems. <!-- id: 10 -->
+    - [x] Develop Monetization Model & Roadmap. <!-- id: 11 -->
+    - [x] Verify final design against user requirements. <!-- id: 12 -->
+
+- [ ] **Phase 5: Web Portal Development (Next.js)**
+    - [x] Initialize Next.js project with Tailwind CSS. <!-- id: 13 -->
+    - [ ] Configure Project Structure & API Client (Axios + JWT). <!-- id: 14 -->
+    - [ ] Implement Authentication Logic (Login/Logout/Protect Routes). <!-- id: 15 -->
+    - [ ] Build League President Dashboard (Layout, Sidebar, Stats). <!-- id: 16 -->
+    - [ ] Implement Game Scheduling Interface. <!-- id: 17 -->
+
+- [ ] **Phase 6: Mobile App Development (React Native)**
+    - [ ] Initialize Expo Project. <!-- id: 18 -->
+    - [ ] Setup Navigation (Stack/Tabs) & Auth. <!-- id: 19 -->
+    - [ ] Build Ampayer Dashboard (Assignments View). <!-- id: 20 -->
+    - [ ] Implement Digital Scoring Module (Offline capable). <!-- id: 21 -->

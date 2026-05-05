@@ -1,0 +1,135 @@
+# UX Design & Wireframes: "Asociación de Ampayers"
+
+This document outlines the user flows and interface designs for the platform.
+
+## 🎨 Visual Identity
+-   **Primary Color**: Deep Navy Blue (`#0F172A`) - Professionalism.
+-   **Secondary Color**: Vibrant Green (`#10B981`) - Field/Action.
+-   **Accent**: Baseball Red (`#EF4444`) - Alerts/Outs.
+-   **Typography**: Inter (SaaS feel) + Oswald (Headers/Sporty).
+
+---
+
+## 👤 Persona 1: League President (Web Portal)
+
+### Flow: Create a New Season & Schedule
+1.  **Dashboard**: Clicks "New Season" card.
+2.  **Wizard Step 1 (Details)**: Enters Name ("Spring 2024"), Dates.
+3.  **Wizard Step 2 (Teams)**: Selects existing teams or uploads CSV.
+4.  **Wizard Step 3 (Schedule)**:
+    -   Option A: Manual Entry.
+    -   Option B: "Auto-Generate" (Randomized round-robin).
+5.  **Review**: Sees calendar view. Clicks "Publish".
+
+### 🖼️ Wireframe: President Dashboard
+
+```text
++-------------------------------------------------------------+
+| [LOGO]  Dashboard  Leagues  Teams  Referees | [User Profile]|
++-------------------------------------------------------------+
+|                                                             |
+|  👋 Welcome, President Juan                                 |
+|                                                             |
+|  [ + New Season ]  [ Import Roster ]  [ Reports ]           |
+|                                                             |
+|  📌 Active Leagues                                          |
+|  +---------------------------+  +------------------------+  |
+|  | ⚾ Municipal Mayor        |  | ⚾ Sunday Veterans     |  |
+|  | Status: Active            |  | Status: Planning       |  |
+|  | Next Game: Sat 10:00 AM   |  | Teams: 12              |  |
+|  | [View Details]            |  | [Setup Schedule]       |  |
+|  +---------------------------+  +------------------------+  |
+|                                                             |
+|  📅 Upcoming Games (This Week)                              |
+|  ---------------------------------------------------------  |
+|  Sat 10:00 AM | Tigers vs Lions | Stadium A | [Edit]      |
+|  Sat 12:00 PM | Bulls vs Bears  | Stadium B | [Edit]      |
+|                                                             |
++-------------------------------------------------------------+
+```
+
+---
+
+## 👮 Persona 2: Ampayer (Mobile App)
+
+### Flow: Accepting an Assignment
+1.  **Push Notification**: "New Game Assigned: Sat 10am @ Stadium A".
+2.  **Tap Notification**: Opens App to "My Games" tab.
+3.  **Detail View**: Sees Teams, Location (Map), Fee.
+4.  **Action**: Taps "Confirm" (Green Button).
+5.  **Status Update**: Status changes to "Confirmed". Admin notified.
+
+### 🖼️ Wireframe: Mobile Home (My Games)
+
+```text
++-----------------------------+
+|  My Assignments      [🔔]   |
++-----------------------------+
+|  PENDING ACTION (1)         |
+|  +-----------------------+  |
+|  | ❗ Sat, Feb 12 - 10am |  |
+|  | 🏟️ Stadium Municipal  |  |
+|  | ⚾ Tigers vs Lions    |  |
+|  | [ REJECT ] [ CONFIRM ]|  |
+|  +-----------------------+  |
+|                             |
+|  UPCOMING (2)               |
+|  +-----------------------+  |
+|  | ✅ Sun, Feb 13 - 12pm |  |
+|  | 🏟️ Field 3            |  |
+|  | ⚾ Bulls vs Bears     |  |
+|  +-----------------------+  |
+|                             |
+|  [🏠 Home] [📅 Cal] [👤 Me] |
++-----------------------------+
+```
+
+---
+
+## 📝 Persona 3: Scorer (Tablet/Web)
+
+### Flow: Live Digital Scoring
+1.  **Game Setup**: Selects Game. Confirms Lineups (Drag & Drop players to positions).
+2.  **Play Loop**:
+    -   Pitcher throws -> Scorer taps "Ball" or "Strike" or "Hit".
+    -   If "Hit" -> Selects type (Line Drive) -> Location (Left Field).
+    -   System asks: "Runner on 1st advanced?" -> Scorer taps "2nd Base".
+3.  **End of Inning**: System auto-calculates runs/hits. Prompts "Switch Sides".
+4.  **Game Over**: Clicks "Finalize Game". PDF generated.
+
+### 🖼️ Wireframe: Scoring Interface (Tablet Landscape)
+
+```text
++---------------------------------------------------------------+
+| TIN VS BOS | INNING: ▲ 3 | OUTS: ● ○ | COUNT: 1-2 | [MENU]    |
++---------------------------------------------------------------+
+|  DEFENSE (Field View)         |  CURRENT BATTER               |
+|         [CF]                  |  #12 J. Doe (Avg .320)        |
+|     [LF]    [RF]              |                               |
+|                               |  ACTION BUTTONS               |
+|      [SS] [2B]                |  +-------+ +-------+ +-----+  |
+|    [3B]      [1B]             |  | STRIKE| | BALL  | | FOUL|  |
+|                               |  +-------+ +-------+ +-----+  |
+|         [P]                   |                               |
+|                               |  +-------+ +-------+ +-----+  |
+|         [C]                   |  |  HIT  | |  OUT  | | RUN |  |
+|                               |  +-------+ +-------+ +-----+  |
+|                               |                               |
+|  LOG:                         |  LAST PLAY:                   |
+|  - Strike (Looking)           |  Ground out to SS (6-3)       |
+|  - Ball (Low)                 |                               |
++---------------------------------------------------------------+
+```
+
+## 🗺️ Navigation Map (Sitemap)
+
+-   **Public**: Landing Page, Login, Password Reset.
+-   **Admin Portal**:
+    -   Dashboard (KPIs)
+    -   Leagues (CRUD)
+    -   Users (Ampayers list, approval)
+    -   Settings (Pricing, Rules)
+-   **App**:
+    -   Home (Feed)
+    -   Schedule (Calendar)
+    -   Profile (Stats, Earnings)

@@ -1,0 +1,16 @@
+{
+    "python.defaultInterpreterPath": "c:/Programacion_ampayers_para_IA/env/Scripts/python.exe",
+    "python.analysis.extraPaths": [
+        "c:/Programacion_ampayers_para_IA/ampayer_project",
+        "c:/Programacion_ampayers_para_IA/ampayer_project/core",
+        "c:/Programacion_ampayers_para_IA/env/Lib/site-packages"
+    ],
+    "python.languageServer": "Pylance",
+    "python.analysis.diagnosticSeverityOverrides": {
+        "reportMissingImports": "none",
+        "reportUnresolvedImport": "none",
+        "reportMissingModuleSource": "none"
+    },
+    "python.analysis.typeCheckingMode": "off",
+    "python.analysis.useLibraryCodeForTypes": true
+}

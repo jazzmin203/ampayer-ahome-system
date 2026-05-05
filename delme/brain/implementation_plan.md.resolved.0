@@ -1,0 +1,207 @@
+# Implementation Plan: "Asociación de Ampayers del Profe Bernal" Platform
+
+This document outlines the architectural and functional design for a premium SaaS platform for baseball/softball league management.
+
+## 1. 🏗️ Technical Architecture (SaaS)
+
+We will use a **Hybrid Architecture**: A robust Monolithic Core for business logic and data management, coupled with a specialized Microservice for AI/Optimization tasks.
+
+-   **Core Backend (The "Brain"):** Django + Django REST Framework (DRF). Handles users, auth, database, CRUD, and business rules.
+-   **Frontend Web (The "Face"):** React.js + Tailwind CSS. For SuperUsers, League Presidents, and Admins.
+-   **Mobile App (The "Field Tool"):** React Native (Expo). For Ampayers and Scorers (offline capabilities for scoring).
+-   **AI Microservice (The "Oracle"):** FastAPI + OR-Tools + Scikit-learn. Handles complex scheduling and assignment optimization.
+-   **Database:** PostgreSQL (Production) / SQLite (Dev). Robust relational data.
+-   **Cache/Queue:** Redis + Celery/RabbitMQ. For async tasks (notifications, triggering AI runs).
+
+## 2. 🗂️ Database Model (Evolution of [models.py](file:///C:/Programacion_ampayers_para_IA/ampayer_project/core/models.py))
+
+The existing model will be expanded significantly.
+
+### Core Entities
+-   **User**: Add `UserProfile` for detailed info. Roles: `SUPERUSER`, `ADMIN_AMPAYER`, `LEAGUE_PRESIDENT`, `AMPAYER`, `SCORER`.
+-   **League**: Add `config` (JSON) for specific league rules. Linked to `President`.
+-   **Season**: To manage different tournaments within a league.
+-   **Category/Division**: E.g., "Major", "Sunday Morning".
+-   **Team**: Link to `Category`. Add `logo`.
+-   **Player**: New Entity. Key fields: `name`, `number`, `position`, `team`, `stats_summary`.
+
+### Game & Scoring Management
+-   **Game**: Expand status. Add `scorer` (User). Link to `Season`.
+-   **Lineup**: New Entity. Links [Game](file:///C:/Programacion_ampayers_para_IA/ampayer_project/core/models.py#48-234) + [Team](file:///C:/Programacion_ampayers_para_IA/ampayer_project/core/models.py#37-45) + `Player` + `BattingOrder`.
+-   **Play**: New Entity (The heart of scoring).
+    -   `game`, `inning`, `half` (top/bottom), `batter`, `pitcher`, `result` (Single, HR, Strikeout, etc.), `rbi`, `outs_recorded`.
+-   **GameStats**: Aggregated stats per player per game (calculated from Plays).
+
+### Resources & Availability
+-   **AvailabilityBlock**: New Entity. User + DateTime Range + Status (Available, Busy). Critical for AI.
+-   **StadiumAvailability**: Time slots when a stadium is usable.
+
+### AI & Optimization
+-   **OptimizationRequest**: Tracks AI jobs. `status`, `input_params`, `result_json`.
+
+## 3. 🔌 API REST Design (Key Endpoints)
+
+### Auth & Users
+-   `POST /api/auth/login/` (JWT)
+-   `GET /api/users/me/`
+-   `PATCH /api/users/availability/` (Set schedule)
+
+### League Management
+-   `POST /api/leagues/{id}/schedule/` (Create games bulk)
+-   `GET /api/leagues/{id}/standings/` (Auto-calculated)
+
+### Games & Assignments
+-   `GET /api/games/` (Filter by date, status, user)
+-   `POST /api/games/{id}/assign/` (Manual assignment)
+-   `POST /api/games/{id}/confirm/` (Ampayer action)
+-   `POST /api/games/optimize/` (Trigger AI)
+
+### Scoring (Live)
+-   `POST /api/games/{id}/lineup/`
+-   `POST /api/games/{id}/play/` (Record a play - distinct endpoint for speed)
+-   `GET /api/games/{id}/boxscore/`
+
+## 4. 🎨 UX Flows (Key Personas)
+
+### 👤 President (League Manager)
+1.  **Dashboard**: Sees "Games this Week", "Pending Payments", "Standings".
+2.  **Create Season**: Wizard step-by-step (Name -> Teams -> Dates -> Rules).
+3.  **Generate Schedule**: "Auto-generate" button or CSV upload.
+
+### 👮 Ampayer (The Official)
+1.  **Notification**: Push "New Assignment: Sat 10:00 AM".
+2.  **Action**: Tap "Accept" or "Reject" (with reason).
+3.  **Game Day**: "Check-in" at stadium. View rules summary.
+
+### 📝 Scorer (The Data Entry)
+1.  **Setup**: Select "Start Game". Import Lineups (drag & drop).
+2.  **Live Mode**:
+    -   Tap Batter -> Tap Action (e.g., "Hit") -> Tap Location ("Left Field").
+    -   System auto-advances runners? (Yes/No prompt).
+3.  **End Game**: "Finalize". Generates PDF score sheet.
+
+## 5. 📱 Digital Scoring Module (Design)
+
+**Visual Metaphor**: Digital Scorebook + Baseball Field View.
+
+-   **Header**: Score (Home/Guest), Inning, Outs (●●), Count (B-S).
+-   **Main Area (Field)**: Interactive diamond. Drag batter to base for hits? Or button array?
+    -   *Decision*: Button array is faster. "Hit", "Out", "Error", "Walk".
+    -   Sub-menu for "Hit": Single, Double, Triple, HR.
+-   **Logic**: State machine.
+    -   If `Outs == 3`, switch half-inning.
+    -   If `Walk`, force runner advance.
+-   **Offline Mode**: LocalSQLite on mobile. Sync when online.
+
+## 6. 🧠 AI Engine Logic
+
+1.  **Inputs**:
+    -   List of Games (Time, Location).
+    -   Pool of Ampayers (Availability, Rating, Home Location).
+    -   Hard Constraints: "No ampayer does > 3 games/day", "Travel time < 1h".
+    -   Soft Constraints: "Balance workload", "Preferred categories".
+2.  **Algorithm**: Constraint Programming (CP-SAT from OR-Tools).
+3.  **Loop**:
+    -   Define Variables: `x[game, ampayer]` (boolean).
+    -   Add Constraints.
+    -   Minimize objective function (Travel distance + Unfairness).
+4.  **Learning**:
+    -   Feedback loop: If Admin overrides AI often (e.g., "User X hates Stadium Y"), update weights.
+
+## 7. 🔒 Security & Roles
+
+-   **JWT (JSON Web Tokens)**: Stateless auth for Mobile/Web.
+-   **RBAC (Role-Based Access Control)**:
+    -   `IsLeaguePresident`: Can only edit their OWN league.
+    -   `IsScorer`: Can only write to games they are assigned to.
+-   **Audit Log**: Middleware to record changes to sensitive tables (Game Results, Assignments).
+
+## 8. 🔔 Notification System
+
+-   **Channels**: Push (Firebase FCM), Email (SendGrid), WhatsApp (Twilio - optional Premium).
+-   **Triggers**:
+    -   Assignment Created -> Push to Ampayer.
+    -   Game Canceled -> Broadcast to all assigned.
+    -   Score Finalized -> Email Result to President.
+
+## 9. 🚀 Development Roadmap
+
+-   **Phase 1: MVP Core (Weeks 1-4)**
+    -   Enhanced Models.
+    -   Web Admin (Django Admin + Custom Dashboard).
+    -   Basic API.
+-   **Phase 2: App & Scoring (Weeks 5-10)**
+    -   React Native Shell.
+    -   Scoring Interface (Beta).
+    -   Game Management Mobile.
+-   **Phase 3: AI & Optimization (Weeks 11-14)**
+    -   Integrate OR-Tools.
+    -   "Magic Button" for scheduling.
+-   **Phase 4: Polish & Launch (Weeks 15-16)**
+    -   UI/UX Refinement.
+    -   Load Testing.
+    -   Store Submission.
+
+## 10. 💰 Monetization Model
+
+-   **Freemium**:
+    -   Free: 1 League, Manual Scheduling, PDF Scores only.
+-   **Pro League ($)**:
+    -   Unlimited Teams, Digital Stats Portal, Basic AI suggestions.
+-   **Enterprise / Association ($$$)**:
+    -   Full AI Optimization, Referee Management System, White-label options.
+-   **Transaction Fee**: Small % on payments collected through the platform (player fees).
+
+## 11. 💻 Recommended Tech Stack
+
+-   **Backend**: Python 3.11, Django 5.0, DRF.
+-   **Database**: PostgreSQL 16.
+-   **Frontend Web**: Next.js (React) - for SEO and performance.
+-   **Mobile**: React Native (Expo) - Single codebase for iOS/Android.
+-   **DevOps**: Docker, GitHub Actions, AWS (EC2 + RDS).
+
+## 12. 📂 Frontend Structure (React/Next.js)
+
+```text
+/src
+  /components
+    /ui          (Buttons, Cards - Design System)
+    /scoring     (Scoreboard, FieldView)
+    /dashboard   (Charts, Tables)
+  /hooks         (useAuth, useGameStream)
+  /pages
+    /login
+    /dashboard
+    /league
+      /[id]
+        /settings
+        /roster
+    /game
+      /[id]      (Live Game View)
+  /services      (api.js, socket.js)
+```
+
+## 13. 🧩 Logical Module Diagram
+
+```mermaid
+graph TD
+    User[Clients: Web/Mobile] --> LB[Load Balancer]
+    LB --> API[Django REST API]
+    
+    subgraph Core System
+        API --> Auth[Auth Service]
+        API --> League[League Mgr]
+        API --> Game[Game/Score Mgr]
+    end
+    
+    subgraph Intelligence
+        API -- Request Opt --> Queue[RabbitMQ]
+        Queue --> AI[FastAPI AI Engine]
+        AI -- Results --> DB[(PostgreSQL)]
+    end
+    
+    subgraph Real-time
+        Game -- Updates --> Socket[WebSocket Server]
+        Socket --> User
+    end
+```

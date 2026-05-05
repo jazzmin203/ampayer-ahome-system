@@ -1,0 +1,34 @@
+# Design & Implementation Walkthrough: "Asociación de Ampayers"
+
+## 1. 🏗️ Core Backend Implementation (Complete)
+We have successfully implemented the core Data and API layer.
+
+### 🗂️ Database Schema ([core/models.py](file:///C:/Programacion_ampayers_para_IA/ampayer_project/core/models.py))
+State-of-the-art relational model implemented with Django:
+-   **User & Profiles**: Role-based system (President, Ampayer, Scorer).
+-   **League Structure**: [League](file:///C:/Programacion_ampayers_para_IA/ampayer_project/core/models.py#58-77) -> [Season](file:///C:/Programacion_ampayers_para_IA/ampayer_project/core/models.py#78-90) -> [Category](file:///C:/Programacion_ampayers_para_IA/ampayer_project/core/models.py#91-104) -> [Team](file:///C:/Programacion_ampayers_para_IA/ampayer_project/core/models.py#124-139) -> [Player](file:///C:/Programacion_ampayers_para_IA/ampayer_project/core/models.py#140-158).
+-   **Game Management**: Status workflow (Pending -> Assigned -> Confirmed).
+-   **Scoring Engine**: Granular [Play](file:///C:/Programacion_ampayers_para_IA/ampayer_project/core/models.py#264-289) and [LineupEntry](file:///C:/Programacion_ampayers_para_IA/ampayer_project/core/models.py#247-263) models for digital scoring.
+-   **Availability**: Block-based availability system for the AI.
+
+### 🔌 REST API ([core/views.py](file:///C:/Programacion_ampayers_para_IA/ampayer_project/core/views.py) & [urls.py](file:///C:/Programacion_ampayers_para_IA/ampayer_project/core/urls.py))
+Full API suite ready for Frontend/Mobile consumption:
+-   **Auth**: JWT via `api/auth/login/`.
+-   **Leagues**: CRUD for managing seasons and teams.
+-   **Games**:
+    -   `GET /api/games/`: Filterable by date, stadium, status.
+    -   `POST /api/games/{id}/assign/`: Manual assignment.
+    -   `POST /api/games/{id}/confirm_assignment/`: Official accepts.
+-   **Players**: Roster management.
+
+### 🖥️ Admin Interface ([core/admin.py](file:///C:/Programacion_ampayers_para_IA/ampayer_project/core/admin.py))
+Professional dashboard configured with:
+-   Search & Filters for all models.
+-   Inline editing for Seasons and Rosters.
+
+## 2. 🚀 Next Steps
+1.  **Run Migrations**: Apply the new schema to the DB.
+2.  **Frontend/Mobile Dev**: Start building the UI against these APIs.
+3.  **AI Integration**: Connect the Optimization Engine.
+
+[View Implementation Plan](implementation_plan.md)
