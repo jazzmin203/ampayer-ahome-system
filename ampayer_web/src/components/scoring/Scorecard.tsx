@@ -403,7 +403,7 @@ export function Scorecard({ game, onPlayRecorded }: ScorecardProps) {
 
     const renderLineup = (side: 'local' | 'visitor') => {
         const teamLineup = side === 'local' ? localLineup : visitorLineup;
-        const players = side === 'local' ? teamPlayers.local : teamPlayers.visitor;
+        const players = side === 'local' ? teamPlayers?.local || [] : teamPlayers?.visitor || [];
         const teamName = side === 'local' ? game.local_team_name : game.visitor_team_name;
 
         // Group by batting order to show history
