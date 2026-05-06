@@ -157,4 +157,6 @@ CSRF_TRUSTED_ORIGINS = [
     "http://localhost:3000",
     "https://ahome-web-ahome.loca.lt",
     "https://ahome-api-ahome.loca.lt",
+    "https://ampayer-ahome-system-5osuhh2ds-jazmins-projects-a389fd6c.vercel.app",
+    "https://*.vercel.app",
 ]
