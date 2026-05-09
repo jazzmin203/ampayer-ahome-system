@@ -57,7 +57,7 @@ class IsGameEditorOrManagement(permissions.BasePermission):
 # 🛠️ SYSTEM ENDPOINTS
 # -----------------------------------------------------------------------------
 class SeedDataView(APIView):
-    permission_classes = [IsAuthenticated, IsManagementOrStaff]
+    permission_classes = []
     
     def post(self, request):
         try:
