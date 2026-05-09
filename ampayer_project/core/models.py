@@ -365,6 +365,18 @@ class LineupEntry(models.Model):
     LOB = models.PositiveIntegerField(default=0, help_text="Corredores dejados en base")
     TB = models.PositiveIntegerField(default=0, help_text="Total de bases")
     
+    # Pitching Statistics
+    IP_outs = models.PositiveIntegerField(default=0, help_text="Outs conseguidos como pitcher (3 = 1 entrada)")
+    pitch_H = models.PositiveIntegerField(default=0, help_text="Hits permitidos")
+    pitch_R = models.PositiveIntegerField(default=0, help_text="Carreras permitidas")
+    pitch_ER = models.PositiveIntegerField(default=0, help_text="Carreras limpias permitidas")
+    pitch_BB = models.PositiveIntegerField(default=0, help_text="Bases por bolas otorgadas")
+    pitch_SO = models.PositiveIntegerField(default=0, help_text="Ponches recetados")
+    pitch_HR = models.PositiveIntegerField(default=0, help_text="Home runs permitidos")
+    pitch_win = models.BooleanField(default=False)
+    pitch_loss = models.BooleanField(default=False)
+    pitch_save = models.BooleanField(default=False)
+    
     class Meta:
         ordering = ['game', 'team', 'batting_order', 'entry_inning']
         # Relaxed unique_together to allow multiple players in the same batting order over time

@@ -26,6 +26,27 @@ def generate_excel_boxscore(game: Game):
 
     row_num = 4
 
+    # Add Line Score (simplified representation for Excel)
+    ws.cell(row=row_num, column=1, value="LINE SCORE").font = Font(bold=True)
+    row_num += 1
+    
+    # Inning headers
+    innings_count = 9 # Standard
+    ws.cell(row=row_num, column=1, value="Equipo")
+    for i in range(1, innings_count + 1):
+        ws.cell(row=row_num, column=i+1, value=i).font = Font(bold=True)
+    ws.cell(row=row_num, column=innings_count+2, value="R").font = Font(bold=True)
+    row_num += 1
+    
+    # Visitor
+    ws.cell(row=row_num, column=1, value=game.visitor_team.name)
+    ws.cell(row=row_num, column=innings_count+2, value=game.away_score)
+    row_num += 1
+    # Local
+    ws.cell(row=row_num, column=1, value=game.local_team.name)
+    ws.cell(row=row_num, column=innings_count+2, value=game.home_score)
+    row_num += 2
+
     # Function to add team stats
     def add_team_stats(team, lineups, title):
         nonlocal row_num
@@ -40,9 +61,7 @@ def generate_excel_boxscore(game: Game):
         row_num += 1
 
         for entry in lineups:
-            avg = "0.000" # Placeholder logic, ideally calc from model
-            # Use stats from entry (some fields might be missing in model if not migrated yet?)
-            # Assuming stats fields exist as per previous task
+            avg = entry.calculate_avg()
             ws.cell(row=row_num, column=1, value=f"{entry.player.first_name} {entry.player.last_name}")
             ws.cell(row=row_num, column=2, value=entry.field_position)
             ws.cell(row=row_num, column=3, value=entry.AB)
@@ -51,9 +70,32 @@ def generate_excel_boxscore(game: Game):
             ws.cell(row=row_num, column=6, value=entry.RBI)
             ws.cell(row=row_num, column=7, value=entry.BB)
             ws.cell(row=row_num, column=8, value=entry.SO)
-            ws.cell(row=row_num, column=9, value=str(entry.avg_val if hasattr(entry, 'avg_val') else 0.000))
+            ws.cell(row=row_num, column=9, value=str(avg))
             row_num += 1
         
+        row_num += 1
+        
+        # Pitching header
+        ws.cell(row=row_num, column=1, value="Pitching").font = Font(bold=True)
+        row_num += 1
+        p_headers = ['Pitcher', 'IP', 'H', 'R', 'ER', 'BB', 'SO', 'HR']
+        for col, header in enumerate(p_headers, 1):
+            ws.cell(row=row_num, column=col, value=header).font = Font(bold=True)
+        row_num += 1
+        
+        pitchers = lineups.filter(IP_outs__gt=0) | lineups.filter(field_position='1')
+        for p in pitchers.distinct():
+            ip = f"{p.IP_outs // 3}.{p.IP_outs % 3}"
+            ws.cell(row=row_num, column=1, value=f"{p.player.first_name} {p.player.last_name}")
+            ws.cell(row=row_num, column=2, value=ip)
+            ws.cell(row=row_num, column=3, value=p.pitch_H)
+            ws.cell(row=row_num, column=4, value=p.pitch_R)
+            ws.cell(row=row_num, column=5, value=p.pitch_ER)
+            ws.cell(row=row_num, column=6, value=p.pitch_BB)
+            ws.cell(row=row_num, column=7, value=p.pitch_SO)
+            ws.cell(row=row_num, column=8, value=p.pitch_HR)
+            row_num += 1
+
         row_num += 2
 
     # Local Team

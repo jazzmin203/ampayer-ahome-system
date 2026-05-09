@@ -77,6 +77,11 @@ export function Scorecard({ game, onPlayRecorded }: ScorecardProps) {
         teamSide: 'local' | 'visitor';
     } | null>(null);
 
+    // Add Player Modal State
+    const [isAddPlayerModalOpen, setIsAddPlayerModalOpen] = useState(false);
+    const [newPlayerTeam, setNewPlayerTeam] = useState<{ side: 'local' | 'visitor', id: number } | null>(null);
+    const [newPlayerData, setNewPlayerData] = useState({ first_name: '', last_name: '', jersey_number: '' });
+
     useEffect(() => {
         const fetchPlayers = async () => {
             try {
@@ -292,6 +297,40 @@ export function Scorecard({ game, onPlayRecorded }: ScorecardProps) {
         }
     };
 
+    const handleAddPlayer = async () => {
+        if (!newPlayerTeam || !newPlayerData.first_name || !newPlayerData.last_name || !newPlayerData.jersey_number) {
+            alert("Completa todos los campos");
+            return;
+        }
+
+        setLoading(true);
+        try {
+            const res = await api.post('/players/', {
+                ...newPlayerData,
+                team: newPlayerTeam.id
+            });
+            
+            const newPlayer = res.data;
+            // Update local state
+            setTeamPlayers(prev => {
+                if (!prev) return prev;
+                return {
+                    ...prev,
+                    [newPlayerTeam.side]: [...prev[newPlayerTeam.side], newPlayer]
+                };
+            });
+            
+            setIsAddPlayerModalOpen(false);
+            setNewPlayerData({ first_name: '', last_name: '', jersey_number: '' });
+            alert("Jugador añadido con éxito");
+        } catch (error) {
+            console.error("Error adding player", error);
+            alert("Error al añadir jugador");
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const handleSubstitution = async (side: 'local' | 'visitor', index: number, oldPlayerId: number) => {
         const teamSide = side === 'local' ? localLineup : visitorLineup;
         const entry = teamSide[index];
@@ -302,7 +341,7 @@ export function Scorecard({ game, onPlayRecorded }: ScorecardProps) {
             return;
         }
 
-        const confirmSub = window.confirm(`¿Confirmas la sustitución del jugador actual por el seleccionado?`);
+        const confirmSub = window.confirm(`¿Confirmas la sustitución?`);
         if (!confirmSub) return;
 
         try {
@@ -310,9 +349,10 @@ export function Scorecard({ game, onPlayRecorded }: ScorecardProps) {
                 incoming_player: newPlayerId,
                 outgoing_player: oldPlayerId,
                 team: side === 'local' ? game.local_team : game.visitor_team,
-                position: entry.field_position
+                position: entry.field_position,
+                batting_order: entry.batting_order // Pass batting order to identify slot correctly
             });
-            alert("Sustitución registrada correctamente.");
+            alert("Sustitución registrada.");
             onPlayRecorded(); // Refresh
         } catch (error) {
             console.error(error);
@@ -414,12 +454,71 @@ export function Scorecard({ game, onPlayRecorded }: ScorecardProps) {
         });
 
         const orders = Array.from({ length: 11 }, (_, i) => i + 1);
+        const innings = Array.from({ length: Math.max(9, game.current_inning) }, (_, i) => i + 1);
+
+        // Calculate runs per inning
+        const getRunsPerInning = (side: 'local' | 'visitor') => {
+            const half = side === 'local' ? 'bottom' : 'top';
+            return innings.map(inn => {
+                const inningPlays = game.plays?.filter(p => p.inning === inn && p.half === half) || [];
+                return inningPlays.reduce((sum, p) => sum + (p.runs_scored || 0), 0);
+            });
+        };
+
+        const visitorRuns = getRunsPerInning('visitor');
+        const localRuns = getRunsPerInning('local');
 
         return (
-            <div className="overflow-x-auto mt-6">
-                <div className="flex items-center gap-2 mb-3">
-                    <div className={`w-3 h-3 rounded-full ${side === 'local' ? 'bg-blue-600' : 'bg-orange-500'}`}></div>
-                    <h4 className="font-bold text-gray-800 uppercase tracking-wider">{teamName}</h4>
+            <div className="mt-8 space-y-8">
+                {/* Line Score Table */}
+                <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 overflow-x-auto shadow-inner">
+                    <h5 className="text-xs font-bold text-gray-500 uppercase mb-2 ml-1">Puntuación por Entradas</h5>
+                    <table className="w-full text-center border-collapse bg-white rounded-md overflow-hidden">
+                        <thead>
+                            <tr className="bg-gray-800 text-white text-[10px]">
+                                <th className="p-2 text-left w-32">EQUIPO</th>
+                                {innings.map(i => <th key={i} className="p-2 border-l border-gray-700">{i}</th>)}
+                                <th className="p-2 border-l border-gray-700 bg-gray-700 w-10">R</th>
+                                <th className="p-2 border-l border-gray-700 bg-gray-700 w-10">H</th>
+                                <th className="p-2 border-l border-gray-700 bg-gray-700 w-10">E</th>
+                            </tr>
+                        </thead>
+                        <tbody className="text-sm font-bold">
+                            <tr className="border-b border-gray-100">
+                                <td className="p-2 text-left text-orange-600 bg-gray-50">{game.visitor_team_name}</td>
+                                {visitorRuns.map((r, i) => <td key={i} className="p-2 border-l border-gray-100">{r === 0 && i + 1 > game.current_inning ? '-' : r}</td>)}
+                                <td className="p-2 border-l border-gray-200 bg-orange-50 text-orange-700">{game.away_score}</td>
+                                <td className="p-2 border-l border-gray-100 bg-orange-50 text-gray-600">--</td>
+                                <td className="p-2 border-l border-gray-100 bg-orange-50 text-red-600">--</td>
+                            </tr>
+                            <tr>
+                                <td className="p-2 text-left text-blue-700 bg-gray-50">{game.local_team_name}</td>
+                                {localRuns.map((r, i) => <td key={i} className="p-2 border-l border-gray-100">{r === 0 && (i + 1 > game.current_inning || (i + 1 === game.current_inning && game.inning_half === 'top')) ? '-' : r}</td>)}
+                                <td className="p-2 border-l border-gray-200 bg-blue-50 text-blue-700">{game.home_score}</td>
+                                <td className="p-2 border-l border-gray-100 bg-blue-50 text-gray-600">--</td>
+                                <td className="p-2 border-l border-gray-100 bg-blue-50 text-red-600">--</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div className="overflow-x-auto">
+                <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                        <div className={`w-3 h-3 rounded-full ${side === 'local' ? 'bg-blue-600' : 'bg-orange-500'}`}></div>
+                        <h4 className="font-bold text-gray-800 uppercase tracking-wider">{teamName}</h4>
+                    </div>
+                    <Button 
+                        size="sm" 
+                        variant="outline" 
+                        className="h-8 text-xs bg-gray-50 hover:bg-gray-100"
+                        onClick={() => {
+                            setNewPlayerTeam({ side, id: side === 'local' ? game.local_team : game.visitor_team });
+                            setIsAddPlayerModalOpen(true);
+                        }}
+                    >
+                        <UserPlus className="h-3 w-3 mr-1" /> Alta Jugador
+                    </Button>
                 </div>
                 <table className="w-full text-xs border-collapse border border-gray-300 min-w-[800px] shadow-sm bg-white">
                     <thead>
@@ -581,6 +680,50 @@ export function Scorecard({ game, onPlayRecorded }: ScorecardProps) {
                         />
                     );
                 })()}
+                
+                {/* Add Player Modal */}
+                {isAddPlayerModalOpen && (
+                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
+                        <Card className="w-full max-w-md">
+                            <CardHeader>
+                                <CardTitle>Registrar Nuevo Jugador</CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium">Nombre(s)</label>
+                                    <Input 
+                                        value={newPlayerData.first_name}
+                                        onChange={(e) => setNewPlayerData({...newPlayerData, first_name: e.target.value})}
+                                        placeholder="Ej: Juan"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium">Apellido(s)</label>
+                                    <Input 
+                                        value={newPlayerData.last_name}
+                                        onChange={(e) => setNewPlayerData({...newPlayerData, last_name: e.target.value})}
+                                        placeholder="Ej: Pérez"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium">Número de Jersey</label>
+                                    <Input 
+                                        type="number"
+                                        value={newPlayerData.jersey_number}
+                                        onChange={(e) => setNewPlayerData({...newPlayerData, jersey_number: e.target.value})}
+                                        placeholder="Ej: 10"
+                                    />
+                                </div>
+                                <div className="flex justify-end gap-2 pt-4">
+                                    <Button variant="outline" onClick={() => setIsAddPlayerModalOpen(false)}>Cancelar</Button>
+                                    <Button onClick={handleAddPlayer} disabled={loading} className="bg-blue-600 hover:bg-blue-700">
+                                        {loading ? 'Guardando...' : 'Guardar Jugador'}
+                                    </Button>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </div>
+                )}
             </CardContent>
         </Card>
     );

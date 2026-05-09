@@ -537,6 +537,35 @@ class GameViewSet(viewsets.ModelViewSet):
             except LineupEntry.DoesNotExist:
                 pass
 
+            # 5. Handle Pitcher Statistics
+            try:
+                # Find the active pitcher entry for the DEFENSIVE team
+                # Defensive team is opposite of play.half (top half -> home team is defensive)
+                pitcher_team = game.local_team if play.half == 'top' else game.visitor_team
+                pitcher_entry = LineupEntry.objects.get(game=game, team=pitcher_team, player=play.pitcher, is_active=True)
+                
+                pitcher_entry.IP_outs += play.outs_recorded
+                
+                event = play.event_type.lower()
+                if event in ['single', 'double', 'triple', 'homerun']:
+                    pitcher_entry.pitch_H += 1
+                    if event == 'homerun':
+                        pitcher_entry.pitch_HR += 1
+                elif event == 'walk':
+                    pitcher_entry.pitch_BB += 1
+                elif event == 'strikeout':
+                    pitcher_entry.pitch_SO += 1
+                
+                if play.runs_scored > 0:
+                    pitcher_entry.pitch_R += play.runs_scored
+                    # For simplicity, assuming all runs are earned for now. 
+                    # Real logic would check if errors occurred.
+                    pitcher_entry.pitch_ER += play.runs_scored
+                
+                pitcher_entry.save()
+            except LineupEntry.DoesNotExist:
+                pass
+
             game.save()
             
             return Response(serializer.data, status=status.HTTP_201_CREATED)
