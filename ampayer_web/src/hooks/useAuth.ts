@@ -13,6 +13,8 @@ export interface User {
     first_name: string;
     last_name: string;
     role: 'superuser' | 'admin_ampayer' | 'league_president' | 'ampayer' | 'scorer';
+    is_superuser?: boolean;
+    is_staff?: boolean;
     profile?: {
         phone_number?: string;
         certification_level?: string;
@@ -59,7 +61,7 @@ export function useAuth() {
     };
 
     const hasRole = (role: User['role']) => user?.role === role;
-    const isAdmin = user?.role === 'superuser' || user?.role === 'admin_ampayer';
+    const isAdmin = user?.role === 'superuser' || user?.role === 'admin_ampayer' || user?.is_superuser || user?.is_staff;
     const isScorer = user?.role === 'scorer';
 
     return { user, loading, logout, hasRole, isAdmin, isScorer, refreshUser: fetchUser };

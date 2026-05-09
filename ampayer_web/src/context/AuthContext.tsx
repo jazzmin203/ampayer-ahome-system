@@ -13,6 +13,8 @@ interface User {
     first_name: string;
     last_name: string;
     role: 'admin_ampayer' | 'league_president' | 'superuser' | 'umpire' | 'team_manager' | string;
+    is_superuser?: boolean;
+    is_staff?: boolean;
     // Add other fields as returned by UserSerializer
 }
 

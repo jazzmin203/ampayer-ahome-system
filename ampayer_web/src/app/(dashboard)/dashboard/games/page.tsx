@@ -28,6 +28,8 @@ interface User {
     first_name: string;
     last_name: string;
     role: string;
+    is_superuser?: boolean;
+    is_staff?: boolean;
 }
 
 interface Game {
