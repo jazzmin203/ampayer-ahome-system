@@ -106,6 +106,36 @@ class SeedDataView(APIView):
         except Exception as e:
             return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
 
+class SystemStatusView(APIView):
+    permission_classes = [IsAuthenticated, IsManagementOrStaff]
+    
+    def get(self, request):
+        from .models import League, Team, Stadium, User, Category
+        from django.db import connection
+        
+        # Get migration status
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT name FROM django_migrations ORDER BY applied DESC LIMIT 5")
+            recent_migrations = [row[0] for row in cursor.fetchall()]
+
+        data = {
+            'counts': {
+                'leagues': League.objects.count(),
+                'categories': Category.objects.count(),
+                'teams': Team.objects.count(),
+                'stadiums': Stadium.objects.count(),
+                'users': {
+                    'total': User.objects.count(),
+                    'ampayers': User.objects.filter(role=User.Role.AMPAYER).count(),
+                    'scorers': User.objects.filter(role=User.Role.SCORER).count(),
+                    'admins': User.objects.filter(role__in=[User.Role.SUPERUSER, User.Role.ADMIN_AMPAYER]).count(),
+                }
+            },
+            'recent_migrations': recent_migrations,
+            'database_status': 'Connected'
+        }
+        return JsonResponse(data)
+
 # -----------------------------------------------------------------------------
 # 👤 USER VIEWS
 # -----------------------------------------------------------------------------
