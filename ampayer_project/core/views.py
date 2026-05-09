@@ -61,9 +61,18 @@ class SeedDataView(APIView):
     
     def post(self, request):
         try:
-            from seed_data import run
-            run()
-            return JsonResponse({'status': 'success', 'message': 'Datos cargados correctamente en producción.'})
+            import subprocess
+            import os
+            # Obtener la ruta base
+            base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            script_path = os.path.join(base_dir, 'seed_data.py')
+            
+            result = subprocess.run(['python', script_path], capture_output=True, text=True)
+            
+            if result.returncode == 0:
+                return JsonResponse({'status': 'success', 'message': 'Datos cargados correctamente.', 'output': result.stdout})
+            else:
+                return JsonResponse({'status': 'error', 'message': result.stderr}, status=500)
         except Exception as e:
             return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
             
