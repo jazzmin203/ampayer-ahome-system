@@ -81,20 +81,35 @@ class SeedDataView(APIView):
             import os
             
             def run_sync_tasks():
+                status_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'sync_status.txt')
                 try:
+                    with open(status_file, 'w') as f:
+                        f.write(f"Iniciando sincronización: {os.popen('date').read()}\n")
+                    
                     print("Running migrations on production...")
                     call_command('migrate', interactive=False)
-                    print("Migrations completed.")
                     
-                    # Instead of running seed_data.py via subprocess, 
-                    # let's import its run function and call it directly.
-                    # This is more efficient and reliable.
+                    with open(status_file, 'a') as f:
+                        f.write("Migraciones completadas exitosamente.\n")
+                    
+                    # Ensure root is in path for import
+                    import sys
+                    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                    if base_dir not in sys.path:
+                        sys.path.append(base_dir)
+                    
                     from seed_data import run as run_seed
                     print("Starting data seeding...")
                     run_seed()
-                    print("Seeding completed.")
+                    
+                    with open(status_file, 'a') as f:
+                        f.write("Carga de datos (Seeding) completada exitosamente.\n")
+                        f.write(f"Fin: {os.popen('date').read()}\n")
                 except Exception as e:
-                    print(f"Error in background sync: {str(e)}")
+                    error_msg = f"Error en sincronización: {str(e)}"
+                    print(error_msg)
+                    with open(status_file, 'a') as f:
+                        f.write(f"FALLO: {error_msg}\n")
             
             thread = threading.Thread(target=run_sync_tasks)
             thread.start()
@@ -135,6 +150,18 @@ class SystemStatusView(APIView):
             'database_status': 'Connected'
         }
         return JsonResponse(data)
+
+class CheckSyncStatusView(APIView):
+    permission_classes = [IsAuthenticated, IsManagementOrStaff]
+    
+    def get(self, request):
+        import os
+        status_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'sync_status.txt')
+        if os.path.exists(status_file):
+            with open(status_file, 'r') as f:
+                content = f.read()
+            return JsonResponse({'status': 'exists', 'log': content})
+        return JsonResponse({'status': 'not_found', 'message': 'No se ha iniciado ninguna sincronización reciente.'})
 
 # -----------------------------------------------------------------------------
 # 👤 USER VIEWS

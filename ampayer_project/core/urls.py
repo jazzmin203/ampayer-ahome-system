@@ -5,7 +5,7 @@ from .views import (
     UserViewSet, LeagueViewSet, SeasonViewSet, CategoryViewSet,
     StadiumViewSet, TeamViewSet, PlayerViewSet, GameViewSet,
     NotificationViewSet, AvailabilityBlockViewSet, GameAssignmentViewSet,
-    ImportViewSet, UmpireReportViewSet, SeedDataView, SystemStatusView
+    ImportViewSet, UmpireReportViewSet, SeedDataView, SystemStatusView, CheckSyncStatusView
 )
 
 router = DefaultRouter()
@@ -32,4 +32,5 @@ urlpatterns = [
     path('', include(router.urls)),
     path('seed/', SeedDataView.as_view(), name='seed_data'),
     path('status/', SystemStatusView.as_view(), name='status'),
+    path('sync-status/', CheckSyncStatusView.as_view(), name='sync_status'),
 ]
