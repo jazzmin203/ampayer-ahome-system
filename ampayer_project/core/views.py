@@ -76,21 +76,33 @@ class SeedDataView(APIView):
     
     def post(self, request):
         try:
-            import subprocess
-            import os
+            from django.core.management import call_command
             import threading
+            import os
             
-            # Obtener la ruta base
-            base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-            script_path = os.path.join(base_dir, 'seed_data.py')
+            def run_sync_tasks():
+                try:
+                    print("Running migrations on production...")
+                    call_command('migrate', interactive=False)
+                    print("Migrations completed.")
+                    
+                    # Instead of running seed_data.py via subprocess, 
+                    # let's import its run function and call it directly.
+                    # This is more efficient and reliable.
+                    from seed_data import run as run_seed
+                    print("Starting data seeding...")
+                    run_seed()
+                    print("Seeding completed.")
+                except Exception as e:
+                    print(f"Error in background sync: {str(e)}")
             
-            def run_script():
-                subprocess.run(['python', script_path])
-                
-            thread = threading.Thread(target=run_script)
+            thread = threading.Thread(target=run_sync_tasks)
             thread.start()
             
-            return JsonResponse({'status': 'success', 'message': 'Carga de datos iniciada en segundo plano.'})
+            return JsonResponse({
+                'status': 'success', 
+                'message': 'Sincronización iniciada (Migraciones + Carga de datos). Esto puede tardar un minuto.'
+            })
         except Exception as e:
             return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
 
