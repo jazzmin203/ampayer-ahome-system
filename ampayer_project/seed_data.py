@@ -111,23 +111,73 @@ def run():
                 if created:
                     print(f"Equipo creado: {equipo_name} ({liga_name})")
 
-        # 4. Ampayers de Prueba
-        for i in range(1, 11):
-            username = f"ampayer{i}"
-            first_name = "Ampayer"
-            last_name = f"Prueba {i}"
+        # 4. Ampayers Reales
+        AMPAYERS = [
+            ("Itsmari Zurisadai", "Armenta Gonzalez"),
+            ("Mario Alberto", "Apodaca Prieto"),
+            ("Francisco Javier", "Bernal Leal"),
+            ("Fernando", "Bernal Ortiz"),
+            ("Pedro", "Bojorquez Reyes"),
+            ("Jose David", "Castillo Campos"),
+            ("Jorge Luis", "Castro Machado"),
+            ("Ramon Alberto", "Cota Chavez"),
+            ("Cesar Dario", "Espinoza Armenta"),
+            ("Carlos Ramon", "Felix Quintero"),
+            ("Jose Agapito", "Garcia Cota"),
+            ("Rommel", "Gamez Soto"),
+            ("Cristhian Adrian", "Guillen Encinas"),
+            ("Florentino Eduardo", "Guillen Encinas"),
+            ("Linda Esmeralda", "Iriarte Felix"),
+            ("Fredy Martin", "Leal Guillen"),
+            ("Frida Lizeth", "Leal Manzanarez"),
+            ("Jesus Ricardo", "Lizarraga Montoya"),
+            ("Laura Diana", "Lopez Beltran"),
+            ("Juan Carlos", "Lopez Murillo"),
+            ("Juan De Dios", "Lopez Orozco"),
+            ("Leonel", "Lopez Ruiz"),
+            ("Lizeth Berenice", "Manzanarez Gastelum"),
+            ("Guadalupe", "Martinez Miranda"),
+            ("Maria Fernanda", "Meza Flores"),
+            ("Arely Lisseth", "Moreno Ahumada"),
+            ("Misael Adriel", "Montiel Urias"),
+            ("Sandra Lizbeth", "Nuñez Valenzuela"),
+            ("Jesus", "Robles Ruiz"),
+            ("Juan", "Sarabia Ontiveros"),
+            ("Alfredo", "Valdez Leyva"),
+            ("Tomas Armando", "Vazquez Sanchez"),
+            ("Jesus Guadalupe", "Valles Vazquez"),
+            ("Julio Cesar", "Vega Ruiz")
+        ]
+        
+        import unicodedata
+        def sanitize_username(first_name, last_name):
+            name_part = first_name.split()[0].lower()
+            last_part = last_name.replace(" ", "").lower()
+            raw_username = f"{name_part}_{last_part}"
+            # Quitar acentos
+            username = ''.join(c for c in unicodedata.normalize('NFD', raw_username) if unicodedata.category(c) != 'Mn')
+            return username
+
+        print("\n--- CARGA DE AMPAYERS REALES ---")
+        for first_name, last_name in AMPAYERS:
+            username = sanitize_username(first_name, last_name)
             
-            if not User.objects.filter(username=username).exists():
-                user = User.objects.create_user(
-                    username=username,
-                    password="pass123",
-                    first_name=first_name,
-                    last_name=last_name,
-                    role=User.Role.AMPAYER
-                )
-                print(f"Ampayer creado: {username} / pass123")
+            user, created = User.objects.get_or_create(
+                username=username,
+                defaults={
+                    'first_name': first_name,
+                    'last_name': last_name,
+                    'role': User.Role.AMPAYER
+                }
+            )
+            if created:
+                user.set_password("pass123")
+                user.save()
+                print(f"Ampayer creado: {username} (pass123) - {first_name} {last_name}")
+            else:
+                print(f"Ampayer ya existía: {username}")
                 
-    print("Carga de datos completada exitosamente.")
+    print("\nCarga de datos completada exitosamente.")
 
 if __name__ == "__main__":
     run()
