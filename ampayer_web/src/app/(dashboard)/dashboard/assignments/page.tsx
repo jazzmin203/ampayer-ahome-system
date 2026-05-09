@@ -33,7 +33,7 @@ export default function MyAssignmentsPage() {
     }, [user]);
 
     const handleResponse = async (gameId: number, action: 'confirm' | 'reject') => {
-        const endpoint = action === 'confirm' ? 'confirm_game' : 'reject_game';
+        const endpoint = action === 'confirm' ? 'confirm_assignment' : 'reject_assignment';
         try {
             await api.post(`/games/${gameId}/${endpoint}/`);
             fetchAssignments();

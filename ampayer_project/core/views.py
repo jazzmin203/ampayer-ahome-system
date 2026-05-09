@@ -53,6 +53,21 @@ class IsGameEditorOrManagement(permissions.BasePermission):
         if not request.user or not request.user.is_authenticated:
             return False
 
+        # Management always access
+        if request.user.is_staff or request.user.role in [User.Role.SUPERUSER, User.Role.ADMIN_AMPAYER, User.Role.LEAGUE_PRESIDENT]:
+            return True
+            
+        # Assigned Staff
+        # Check Scorers
+        if obj.scorer_1 == request.user or obj.scorer_2 == request.user:
+            return True
+            
+        # Check Ampayers (if they need to verify)
+        if obj.ampayer_1 == request.user or obj.ampayer_2 == request.user or obj.ampayer_3 == request.user:
+            return True
+            
+        return False
+
 # -----------------------------------------------------------------------------
 # 🛠️ SYSTEM ENDPOINTS
 # -----------------------------------------------------------------------------
@@ -78,21 +93,6 @@ class SeedDataView(APIView):
             return JsonResponse({'status': 'success', 'message': 'Carga de datos iniciada en segundo plano.'})
         except Exception as e:
             return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
-            
-        # Management always access
-        if request.user.is_staff or request.user.role in [User.Role.SUPERUSER, User.Role.ADMIN_AMPAYER, User.Role.LEAGUE_PRESIDENT]:
-            return True
-            
-        # Assigned Staff
-        # Check Scorers
-        if obj.scorer_1 == request.user or obj.scorer_2 == request.user:
-            return True
-            
-        # Check Ampayers (if they need to verify)
-        if obj.ampayer_1 == request.user or obj.ampayer_2 == request.user or obj.ampayer_3 == request.user:
-            return True
-            
-        return False
 
 # -----------------------------------------------------------------------------
 # 👤 USER VIEWS
