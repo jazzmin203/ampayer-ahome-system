@@ -63,16 +63,19 @@ class SeedDataView(APIView):
         try:
             import subprocess
             import os
+            import threading
+            
             # Obtener la ruta base
             base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
             script_path = os.path.join(base_dir, 'seed_data.py')
             
-            result = subprocess.run(['python', script_path], capture_output=True, text=True)
+            def run_script():
+                subprocess.run(['python', script_path])
+                
+            thread = threading.Thread(target=run_script)
+            thread.start()
             
-            if result.returncode == 0:
-                return JsonResponse({'status': 'success', 'message': 'Datos cargados correctamente.', 'output': result.stdout})
-            else:
-                return JsonResponse({'status': 'error', 'message': result.stderr}, status=400)
+            return JsonResponse({'status': 'success', 'message': 'Carga de datos iniciada en segundo plano.'})
         except Exception as e:
             return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
             
