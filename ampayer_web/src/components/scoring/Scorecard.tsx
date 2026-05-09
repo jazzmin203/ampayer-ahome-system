@@ -55,6 +55,14 @@ interface LineupEntry {
     RBI: number; BB: number; IBB: number; HBP: number;
     SO: number; SH: number; SF: number; SB: number;
     CS: number; LOB: number; TB: number;
+    // Pitching
+    IP_outs: number;
+    pitch_H: number;
+    pitch_R: number;
+    pitch_ER: number;
+    pitch_BB: number;
+    pitch_SO: number;
+    pitch_HR: number;
 }
 
 interface ScorecardProps {
@@ -123,7 +131,8 @@ export function Scorecard({ game, onPlayRecorded }: ScorecardProps) {
         singles: 0, doubles: 0, triples: 0, HR: 0,
         RBI: 0, BB: 0, IBB: 0, HBP: 0,
         SO: 0, SH: 0, SF: 0, SB: 0,
-        CS: 0, LOB: 0, TB: 0
+        CS: 0, LOB: 0, TB: 0,
+        IP_outs: 0, pitch_H: 0, pitch_R: 0, pitch_ER: 0, pitch_BB: 0, pitch_SO: 0, pitch_HR: 0
     });
 
     const handleStartGame = async () => {
@@ -624,6 +633,35 @@ export function Scorecard({ game, onPlayRecorded }: ScorecardProps) {
                         })}
                     </tbody>
                 </table>
+
+                {/* Pitching Summary */}
+                <div className="mt-4 bg-gray-50 p-3 rounded-md border border-gray-200">
+                    <h5 className="text-[10px] font-bold text-gray-400 uppercase mb-2">Pitcheo - {teamName}</h5>
+                    <table className="w-full text-center text-[10px]">
+                        <thead>
+                            <tr className="text-gray-500 border-b border-gray-200">
+                                <th className="text-left p-1">Lanzador</th>
+                                <th className="p-1">IP</th>
+                                <th className="p-1">H</th>
+                                <th className="p-1">R</th>
+                                <th className="p-1">BB</th>
+                                <th className="p-1">SO</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {teamLineup.filter(e => e.IP_outs > 0 || e.field_position === '1').map((p, idx) => (
+                                <tr key={idx} className="border-b border-gray-100 last:border-0">
+                                    <td className="text-left p-1 font-medium">#{teamPlayers?.[side].find(tp => tp.id === p.player)?.jersey_number} {teamPlayers?.[side].find(tp => tp.id === p.player)?.first_name}</td>
+                                    <td className="p-1">{Math.floor(p.IP_outs / 3)}.{p.IP_outs % 3}</td>
+                                    <td className="p-1">{p.pitch_H || 0}</td>
+                                    <td className="p-1">{p.pitch_R || 0}</td>
+                                    <td className="p-1">{p.pitch_BB || 0}</td>
+                                    <td className="p-1">{p.pitch_SO || 0}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         );
     };
