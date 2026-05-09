@@ -247,6 +247,12 @@ class PlayerViewSet(viewsets.ModelViewSet):
     search_fields = ['first_name', 'last_name', 'team__name']
 
     def get_permissions(self):
+        if self.action == 'create':
+            # Allow Scorers to add players on the fly
+            if self.request.user and self.request.user.is_authenticated:
+                if self.request.user.role == User.Role.SCORER:
+                    return [permissions.IsAuthenticated()]
+        
         if self.action in ['create', 'update', 'partial_update', 'destroy']:
             return [IsManagementOrStaff()]
         return [IsAuthenticated()]

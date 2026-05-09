@@ -5,8 +5,9 @@ from openpyxl.styles import Font, Alignment, Border, Side
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter, landscape
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
-from reportlab.lib.styles import getSampleStyleSheet
-from .models import Game, LineupEntry, PitchingStats
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from django.db import models
+from .models import Game, LineupEntry, Play
 
 def generate_excel_boxscore(game: Game):
     """
@@ -223,12 +224,46 @@ def generate_digital_acta(game: Game):
     elements.append(t_info)
     elements.append(Spacer(1, 15))
 
-    # 3. Lineups with History
-    def add_lineup_section(title, team):
+    # 3. Line Score (Carreras por Entrada)
+    elements.append(Paragraph("PUNTUACIÓN POR ENTRADAS", section_style))
+    innings_count = max(9, game.current_inning)
+    line_score_headers = ['EQUIPO'] + [str(i) for i in range(1, innings_count + 1)] + ['R', 'H', 'E']
+    
+    def get_runs_for_team(side):
+        half = 'top' if side == 'visitor' else 'bottom'
+        runs = []
+        for i in range(1, innings_count + 1):
+            inn_runs = game.plays.filter(inning=i, half=half).aggregate(total=models.Sum('runs_scored'))['total'] or 0
+            runs.append(str(inn_runs) if i <= game.current_inning else "-")
+        return runs
+
+    visitor_runs = get_runs_for_team('visitor')
+    local_runs = get_runs_for_team('local')
+    
+    ls_data = [
+        line_score_headers,
+        [game.visitor_team.name] + visitor_runs + [str(game.away_score), "-", "-"],
+        [game.local_team.name] + local_runs + [str(game.home_score), "-", "-"]
+    ]
+    
+    t_ls = Table(ls_data, hAlign='LEFT')
+    t_ls.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,0), colors.grey),
+        ('TEXTCOLOR', (0,0), (-1,0), colors.whitesmoke),
+        ('GRID', (0,0), (-1,-1), 0.5, colors.grey),
+        ('ALIGN', (1,0), (-1,-1), 'CENTER'),
+        ('FONTSIZE', (0,0), (-1,-1), 8)
+    ]))
+    elements.append(t_ls)
+    elements.append(Spacer(1, 15))
+
+    # 4. Lineups and Pitching
+    def add_team_section(title, team):
         elements.append(Paragraph(title, section_style))
         lineup = LineupEntry.objects.filter(game=game, team=team).order_by('batting_order', 'entry_inning')
         
-        data = [['#', 'Jugador', 'Pos', 'E. Ent', 'E. Sal', 'AB', 'R', 'H', 'RBI']]
+        # Batting Table
+        data = [['#', 'Jugador', 'Pos', 'E. Ent', 'E. Sal', 'AB', 'R', 'H', 'RBI', 'BB', 'SO']]
         for entry in lineup:
             data.append([
                 str(entry.batting_order),
@@ -236,7 +271,7 @@ def generate_digital_acta(game: Game):
                 entry.field_position,
                 str(entry.entry_inning),
                 str(entry.exit_inning) if entry.exit_inning else "-",
-                str(entry.AB), str(entry.R), str(entry.H), str(entry.RBI)
+                str(entry.AB), str(entry.R), str(entry.H), str(entry.RBI), str(entry.BB), str(entry.SO)
             ])
         
         t = Table(data, hAlign='LEFT')
@@ -250,8 +285,30 @@ def generate_digital_acta(game: Game):
         elements.append(t)
         elements.append(Spacer(1, 10))
 
-    add_lineup_section(f"Lineup Local: {game.local_team.name}", game.local_team)
-    add_lineup_section(f"Lineup Visitante: {game.visitor_team.name}", game.visitor_team)
+        # Pitching Table for this team
+        elements.append(Paragraph(f"Estadísticas de Pitcheo: {team.name}", ParagraphStyle('small', fontSize=8, leading=10, textColor=colors.grey)))
+        pitchers = lineup.filter(models.Q(IP_outs__gt=0) | models.Q(field_position='1'))
+        if pitchers.exists():
+            p_data = [['Pitcher', 'IP', 'H', 'R', 'ER', 'BB', 'SO', 'HR']]
+            for p in pitchers.distinct():
+                ip = f"{p.IP_outs // 3}.{p.IP_outs % 3}"
+                p_data.append([
+                    f"{p.player.first_name} {p.player.last_name}",
+                    ip, str(p.pitch_H), str(p.pitch_R), str(p.pitch_ER), str(p.pitch_BB), str(p.pitch_SO), str(p.pitch_HR)
+                ])
+            
+            tp = Table(p_data, hAlign='LEFT')
+            tp.setStyle(TableStyle([
+                ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#374151")),
+                ('TEXTCOLOR', (0,0), (-1,0), colors.whitesmoke),
+                ('GRID', (0,0), (-1,-1), 0.5, colors.grey),
+                ('FONTSIZE', (0,0), (-1,-1), 7)
+            ]))
+            elements.append(tp)
+            elements.append(Spacer(1, 10))
+
+    add_team_section(f"Equipo Local: {game.local_team.name}", game.local_team)
+    add_team_section(f"Equipo Visitante: {game.visitor_team.name}", game.visitor_team)
 
     # 4. Play-by-Play Log
     elements.append(Paragraph("Resumen de Jugadas / Bitácora", section_style))

@@ -223,26 +223,43 @@ export function Scorecard({ game, onPlayRecorded }: ScorecardProps) {
                 return null;
             };
 
-            // Process existing runners based on selected actions
+            // Process existing runners based on selected action
             if (game.runner_on_3b) {
                 const action = runner_movements.runner_3b;
-                if (action === 'hold') nextRunner3B = game.runner_on_3b;
+                const id = game.runner_on_3b;
+                if (action === 'hold') nextRunner3B = id;
             }
             if (game.runner_on_2b) {
                 const action = runner_movements.runner_2b;
                 const id = game.runner_on_2b;
                 if (action === 'hold') nextRunner2B = id;
-                else if (action === 'advance_3b') nextRunner3B = id;
+                else if (action && action.includes('advance_3b')) nextRunner3B = id;
             }
             if (game.runner_on_1b) {
                 const action = runner_movements.runner_1b;
                 const id = game.runner_on_1b;
                 if (action === 'hold') nextRunner1B = id;
-                else if (action === 'advance_2b') nextRunner2B = id;
-                else if (action === 'advance_3b') nextRunner3B = id;
+                else if (action && action.includes('advance_2b')) nextRunner2B = id;
+                else if (action && action.includes('advance_3b')) nextRunner3B = id;
+                else if (action === 'advance_error') {
+                    // Default to next base if just "advance_error"
+                    nextRunner2B = id;
+                }
             }
 
             // Process batter destination
+            const battingTeamSide = selectedCell.teamSide;
+            const defensiveTeamSide = battingTeamSide === 'local' ? 'visitor' : 'local';
+            const defensiveLineup = defensiveTeamSide === 'local' ? localLineup : visitorLineup;
+            const activePitcher = defensiveLineup.find(e => e.is_active && (e.field_position === '1' || e.field_position === 'P'))?.player;
+            
+            if (!activePitcher) {
+                alert("No hay un pitcher asignado en el lineup defensivo (Posición 1). Por favor, asigna uno antes de guardar.");
+                setLoading(false);
+                return;
+            }
+            
+            const pitcherId = activePitcher;
             let batterId = selectedCell.player_id;
             if (['single', 'walk', 'hit_by_pitch'].includes(event_type)) {
                 nextRunner1B = batterId;
@@ -437,8 +454,23 @@ export function Scorecard({ game, onPlayRecorded }: ScorecardProps) {
                     {/* Result Text */}
                     <text x={mid} y={mid + 4} textAnchor="middle" fontSize="9" className={colorClass} style={{ fontWeight: 'bold' }}>{content}</text>
 
-                    {/* Runs scored indicator */}
-                    {play.runs_scored > 0 && <circle cx={mid} cy={size - margin} r="3" fill="#ef4444" />}
+                    {/* RBI Indicators (Dots) */}
+                    {play.runs_scored > 0 && (
+                        <g>
+                            {Array.from({ length: Math.min(4, play.runs_scored) }).map((_, i) => (
+                                <circle 
+                                    key={i} 
+                                    cx={mid - 6 + (i * 4)} 
+                                    cy={mid + 10} 
+                                    r="1.5" 
+                                    fill="#ef4444" 
+                                />
+                            ))}
+                        </g>
+                    )}
+
+                    {/* Runs scored indicator (Home plate fill) */}
+                    {play.runs_scored > 0 && <circle cx={mid} cy={size - margin} r="2.5" fill="#ef4444" />}
                 </svg>
             );
         };

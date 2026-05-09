@@ -137,11 +137,13 @@ export default function PlayModal({ isOpen, onClose, onSave, gameContext }: Play
                     className="w-full border border-gray-300 rounded-md p-1.5 text-[11px] focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
                 >
                     <option value="hold">Se queda (Hold)</option>
-                    <option value="advance_2b" disabled={base !== '1ra'}>Avanza a 2da</option>
-                    <option value="advance_3b" disabled={base === '3ra'}>Avanza a 3ra</option>
+                    <option value="advance_2b">Avanza a 2da</option>
+                    <option value="advance_3b">Avanza a 3ra</option>
                     <option value="score">Anota carrera</option>
-                    <option value="out_2b" disabled={base !== '1ra'}>Out en 2da</option>
-                    <option value="out_3b" disabled={base === '3ra'}>Out en 3ra</option>
+                    <option value="advance_error">Avanza por Error (E)</option>
+                    <option value="advance_pb_wp">Avanza por PB/WP</option>
+                    <option value="out_2b">Out en 2da</option>
+                    <option value="out_3b">Out en 3ra</option>
                     <option value="out_home">Out en Home</option>
                 </select>
             </div>
