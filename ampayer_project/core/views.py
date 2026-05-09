@@ -72,9 +72,9 @@ class SeedDataView(APIView):
             if result.returncode == 0:
                 return JsonResponse({'status': 'success', 'message': 'Datos cargados correctamente.', 'output': result.stdout})
             else:
-                return JsonResponse({'status': 'error', 'message': result.stderr}, status=500)
+                return JsonResponse({'status': 'error', 'message': result.stderr}, status=400)
         except Exception as e:
-            return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
             
         # Management always access
         if request.user.is_staff or request.user.role in [User.Role.SUPERUSER, User.Role.ADMIN_AMPAYER, User.Role.LEAGUE_PRESIDENT]:
