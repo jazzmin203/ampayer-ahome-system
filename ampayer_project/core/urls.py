@@ -5,7 +5,7 @@ from .views import (
     UserViewSet, LeagueViewSet, SeasonViewSet, CategoryViewSet,
     StadiumViewSet, TeamViewSet, PlayerViewSet, GameViewSet,
     NotificationViewSet, AvailabilityBlockViewSet, GameAssignmentViewSet,
-    ImportViewSet, UmpireReportViewSet
+    ImportViewSet, UmpireReportViewSet, SeedDataView
 )
 
 router = DefaultRouter()
@@ -30,4 +30,5 @@ urlpatterns = [
     
     # API
     path('', include(router.urls)),
+    path('seed/', SeedDataView.as_view(), name='seed_data'),
 ]

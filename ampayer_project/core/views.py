@@ -4,6 +4,10 @@ from rest_framework import viewsets, status, filters, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
+from rest_framework.views import APIView
+from django.http import JsonResponse
+import sys
+import os
 from django_filters.rest_framework import DjangoFilterBackend
 from django.utils import timezone
 import datetime
@@ -48,6 +52,20 @@ class IsGameEditorOrManagement(permissions.BasePermission):
     def has_object_permission(self, request, view, obj):
         if not request.user or not request.user.is_authenticated:
             return False
+
+# -----------------------------------------------------------------------------
+# 🛠️ SYSTEM ENDPOINTS
+# -----------------------------------------------------------------------------
+class SeedDataView(APIView):
+    permission_classes = [IsAuthenticated, IsManagementOrStaff]
+    
+    def post(self, request):
+        try:
+            from seed_data import run
+            run()
+            return JsonResponse({'status': 'success', 'message': 'Datos cargados correctamente en producción.'})
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
             
         # Management always access
         if request.user.is_staff or request.user.role in [User.Role.SUPERUSER, User.Role.ADMIN_AMPAYER, User.Role.LEAGUE_PRESIDENT]:
