@@ -197,19 +197,6 @@ export function Scorecard({ game, onPlayRecorded }: ScorecardProps) {
         try {
             const { runner_movements, event_type, rbi, outs_recorded, is_hit } = playData;
 
-            // Check if pitcher exists for defensive team
-            const battingTeamSide = selectedCell.teamSide;
-            const defensiveTeamSide = battingTeamSide === 'local' ? 'visitor' : 'local';
-            const defensiveLineup = defensiveTeamSide === 'local' ? localLineup : visitorLineup;
-            const currentPitcherEntry = defensiveLineup.find(e => e.field_position === '1');
-            const pitcherId = currentPitcherEntry?.player || 0;
-
-            if (!pitcherId || pitcherId === 0) {
-                alert("Error: No se ha asignado un Pitcher (Posición 1) en el equipo defensivo. Por favor guarda el lineup primero.");
-                setLoading(false);
-                return;
-            }
-
             // Calculate resultant runner state
             let nextRunner1B: number | null = null;
             let nextRunner2B: number | null = null;
