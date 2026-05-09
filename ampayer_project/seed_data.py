@@ -82,8 +82,21 @@ EQUIPOS_POR_LIGA = {
 def run():
     print("Iniciando carga de datos...")
     with transaction.atomic():
-        # 0. Season
-        season, _ = Season.objects.get_or_create(name="Temporada 2026", defaults={"is_active": True})
+        # 0. League and Season
+        from core.models import League
+        league, _ = League.objects.get_or_create(
+            slug="liga-general", 
+            defaults={"name": "Ligas de Ahome", "city": "Los Mochis"}
+        )
+        season, _ = Season.objects.get_or_create(
+            name="Temporada 2026", 
+            defaults={
+                "league": league,
+                "start_date": "2026-01-01",
+                "end_date": "2026-12-31",
+                "is_active": True
+            }
+        )
         
         # 1. Ligas
         category_objects = {}
