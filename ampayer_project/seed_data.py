@@ -183,12 +183,13 @@ def run():
                     'role': User.Role.AMPAYER
                 }
             )
+            )
+            user.set_password("pass123")
+            user.save()
             if created:
-                user.set_password("pass123")
-                user.save()
                 print(f"Ampayer creado: {username} (pass123) - {first_name} {last_name}")
             else:
-                print(f"Ampayer ya existía: {username}")
+                print(f"Ampayer actualizado: {username} (pass123)")
                 
     print("\nCarga de datos completada exitosamente.")
 
