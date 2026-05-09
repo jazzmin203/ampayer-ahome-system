@@ -28,7 +28,25 @@ function StatCard({ title, value, icon: Icon, color }: StatCardProps) {
 export function AdminDashboard({ stats }: { stats: any }) {
     return (
         <div className="space-y-6">
-            <h2 className="text-2xl font-bold text-gray-800">Panel Global (SuperUsuario)</h2>
+            <div className="flex justify-between items-center">
+                <h2 className="text-2xl font-bold text-gray-800">Panel Global (SuperUsuario)</h2>
+                <Button 
+                    variant="outline" 
+                    className="border-blue-200 text-blue-700 hover:bg-blue-50"
+                    onClick={async () => {
+                        if (confirm("¿Deseas sincronizar la base de datos? Esto aplicará migraciones y cargará datos iniciales (Ligas, Equipos, Ampayers).")) {
+                            try {
+                                const res = await import('@/lib/api').then(m => m.default.post('/seed/'));
+                                alert(res.data.message);
+                            } catch (e) {
+                                alert("Error al iniciar sincronización");
+                            }
+                        }
+                    }}
+                >
+                    <Activity className="mr-2 h-4 w-4" /> Sincronizar Producción
+                </Button>
+            </div>
             <div className="grid gap-4 md:grid-cols-4">
                 <StatCard title="Ligas Activas" value="5" icon={Trophy} color="text-yellow-500" />
                 <StatCard title="Total Usuarios" value={stats?.totalUsers || 0} icon={Users} color="text-blue-500" />
