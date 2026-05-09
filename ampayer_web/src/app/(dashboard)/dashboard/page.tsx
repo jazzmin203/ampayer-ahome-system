@@ -28,14 +28,18 @@ export default function DashboardPage() {
 
                 // Fetch stats (mocked or calculated based on role)
                 // In a real app, we'd have a /stats endpoint
+                // Fetch stats from our new status endpoint for admins
                 if (user.role === 'superuser' || user.role === 'admin_ampayer') {
-                    const usersRes = await api.get('/users/');
-                    setStats({
-                        totalGames: gamesData.length,
-                        pendingGames: gamesData.filter((g: any) => g.status === 'pending').length,
-                        activeAmpayers: usersRes.data.filter((u: any) => u.role === 'ampayer').length,
-                        totalUsers: usersRes.data.length,
-                    });
+                    try {
+                        const statusRes = await api.get('/status/');
+                        setStats({
+                            ...statusRes.data.counts,
+                            totalGames: gamesData.length,
+                            pendingGames: gamesData.filter((g: any) => g.status === 'pending').length,
+                        });
+                    } catch (e) {
+                        console.error("Failed to fetch status stats", e);
+                    }
                 } else if (user.role === 'league_president') {
                     setStats({
                         totalGames: gamesData.length,

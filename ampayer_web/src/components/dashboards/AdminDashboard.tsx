@@ -48,10 +48,10 @@ export function AdminDashboard({ stats }: { stats: any }) {
                 </Button>
             </div>
             <div className="grid gap-4 md:grid-cols-4">
-                <StatCard title="Ligas Activas" value="5" icon={Trophy} color="text-yellow-500" />
-                <StatCard title="Total Usuarios" value={stats?.totalUsers || 0} icon={Users} color="text-blue-500" />
-                <StatCard title="Juegos del Mes" value={stats?.totalGames || 0} icon={Calendar} color="text-green-500" />
-                <StatCard title="Conflictos" value={stats?.pendingGames || 0} icon={AlertCircle} color="text-red-500" />
+                <StatCard title="Ligas" value={stats?.leagues || 0} icon={Trophy} color="text-yellow-500" />
+                <StatCard title="Equipos" value={stats?.teams || 0} icon={Activity} color="text-purple-500" />
+                <StatCard title="Total Usuarios" value={stats?.users?.total || 0} icon={Users} color="text-blue-500" />
+                <StatCard title="Juegos Pendientes" value={stats?.pendingGames || 0} icon={AlertCircle} color="text-red-500" />
             </div>
             <div className="grid gap-6 md:grid-cols-2">
                 <Card>
