@@ -49,7 +49,7 @@ class UserMinimalSerializer(serializers.ModelSerializer):
     """Lighter serializer for lists and dropdowns."""
     class Meta:
         model = User
-        fields = ['id', 'username', 'first_name', 'last_name', 'role']
+        fields = ['id', 'username', 'first_name', 'last_name', 'role', 'is_superuser', 'is_staff']
 
 # -----------------------------------------------------------------------------
 # 🏆 STRUCTURE SERIALIZERS

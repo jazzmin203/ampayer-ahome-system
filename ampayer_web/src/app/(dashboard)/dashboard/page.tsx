@@ -29,7 +29,7 @@ export default function DashboardPage() {
                 // Fetch stats (mocked or calculated based on role)
                 // In a real app, we'd have a /stats endpoint
                 // Fetch stats from our new status endpoint for admins
-                if (user.role === 'superuser' || user.role === 'admin_ampayer') {
+                if (user.role === 'superuser' || user.role === 'admin_ampayer' || user.is_superuser || user.is_staff) {
                     try {
                         const statusRes = await api.get('/status/');
                         setStats({

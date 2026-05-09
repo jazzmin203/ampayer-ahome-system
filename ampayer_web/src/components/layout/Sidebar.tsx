@@ -27,12 +27,13 @@ export default function Sidebar() {
 
     const getNavItems = () => {
         const role = user?.role;
+        const isAdmin = role === 'superuser' || user?.is_superuser;
         const items = [
             { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
         ];
 
         // SUPERUSER (Dueño de Plataforma)
-        if (role === 'superuser') {
+        if (isAdmin) {
             items.push(
                 { name: 'KPIs Globales', href: '/dashboard/kpis', icon: LayoutDashboard },
                 { name: 'Ligas Activas', href: '/dashboard/leagues', icon: Trophy },
