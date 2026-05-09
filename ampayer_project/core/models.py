@@ -144,10 +144,10 @@ class Player(models.Model):
     A player on a team.
     """
     team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name="players")
-    first_name = models.CharField(max_length=100)
-    last_name = models.CharField(max_length=100)
+    first_name = models.CharField(max_length=100, blank=True, default='')
+    last_name = models.CharField(max_length=100, blank=True, default='')
     jersey_number = models.PositiveIntegerField()
-    positions = models.CharField(max_length=100, help_text="Comma-separated positions (e.g., 'P, SS')")
+    positions = models.CharField(max_length=100, blank=True, default='', help_text="Comma-separated positions (e.g., 'P, SS')")
     photo = models.ImageField(upload_to="player_photos/", null=True, blank=True)
     
     # Stats Summary (Cached for performance)

@@ -4,7 +4,8 @@ import { useEffect, useState } from 'react';
 import api from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { Plus, Calendar, MapPin, UserCheck, X, Trash2, Edit, FileSpreadsheet } from 'lucide-react';
+import { Plus, Calendar, MapPin, UserCheck, X, Trash2, Edit, FileSpreadsheet, FileText } from 'lucide-react';
+import Cookies from 'js-cookie';
 import { useAuth } from '@/context/AuthContext';
 
 interface Team {
@@ -204,6 +205,23 @@ export default function GamesPage() {
         }
     };
 
+    const handleExportDistribution = () => {
+        const token = Cookies.get('access_token');
+        const includeParam = showHistory ? '&include_past=true' : '';
+        const url = `https://ampayer-api.onrender.com/api/games/export_distribution/?${includeParam}`;
+        // Open in new tab with token via fetch → blob download
+        fetch(url, { headers: { Authorization: `Bearer ${token}` } })
+            .then(res => res.blob())
+            .then(blob => {
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = `distribucion_ampayers_${new Date().toISOString().split('T')[0]}.pdf`;
+                link.click();
+                URL.revokeObjectURL(link.href);
+            })
+            .catch(() => alert('Error al generar el reporte PDF'));
+    };
+
     const handleExcelUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
@@ -330,6 +348,16 @@ export default function GamesPage() {
                     >
                         {showHistory ? '📅 Ocultar historial' : '🕓 Ver historial'}
                     </button>
+                    {canAssignAmpayers && (
+                        <Button
+                            variant="outline"
+                            onClick={handleExportDistribution}
+                            className="border-indigo-300 text-indigo-700 hover:bg-indigo-50"
+                            title="Exportar PDF con distribución de ampayers y anotadores"
+                        >
+                            <FileText className="mr-2 h-4 w-4" /> Exportar Distribución PDF
+                        </Button>
+                    )}
                     {canCreateGames && (
                         <div className="flex gap-2">
                             <Button variant="outline" onClick={() => setShowBulkModal(true)}>

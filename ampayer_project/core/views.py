@@ -20,7 +20,7 @@ from .serializers import (
     AvailabilityBlockSerializer, NotificationSerializer, LineupEntrySerializer,
     UserMinimalSerializer, PlaySerializer, UmpireReportSerializer
 )
-from .reports import generate_excel_boxscore, generate_pdf_boxscore, generate_digital_acta
+from .reports import generate_excel_boxscore, generate_pdf_boxscore, generate_digital_acta, generate_umpire_distribution_pdf
 
 # -----------------------------------------------------------------------------
 # 🛡️ PERMISSIONS
@@ -221,6 +221,33 @@ class GameViewSet(viewsets.ModelViewSet):
         """Export comprehensive game history as PDF"""
         game = self.get_object()
         return generate_digital_acta(game)
+
+    @action(detail=False, methods=['get'], url_path='export_distribution')
+    def export_distribution(self, request):
+        """
+        Export a professional PDF showing all games with their assigned
+        umpires and scorers. Optionally filter by ?season=ID or ?category=ID.
+        Only accessible by management roles.
+        """
+        if not request.user.role in [User.Role.SUPERUSER, User.Role.ADMIN_AMPAYER, User.Role.LEAGUE_PRESIDENT]:
+            if not request.user.is_staff:
+                from rest_framework.response import Response as DRFResponse
+                return DRFResponse({'error': 'No autorizado'}, status=403)
+
+        qs = Game.objects.all()
+        season_id = request.query_params.get('season')
+        category_id = request.query_params.get('category')
+        include_past = request.query_params.get('include_past', 'false').lower() == 'true'
+
+        if not include_past:
+            import datetime as dt
+            qs = qs.filter(date__gte=dt.date.today())
+        if season_id:
+            qs = qs.filter(season_id=season_id)
+        if category_id:
+            qs = qs.filter(category_id=category_id)
+
+        return generate_umpire_distribution_pdf(qs)
 
     def get_serializer_class(self):
         if self.action in ['list', 'retrieve']:
