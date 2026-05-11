@@ -413,41 +413,47 @@ class GameViewSet(viewsets.ModelViewSet):
             return user
 
         try:
-            # Validate proposed staff
-            staff_map = {
-                'ampayer_1': check_conflicts(request.data.get('ampayer_1_id'), 'Ampayer Principal'),
-                'ampayer_2': check_conflicts(request.data.get('ampayer_2_id'), 'Ampayer Base'),
-                'ampayer_3': check_conflicts(request.data.get('ampayer_3_id'), 'Ampayer Base'),
-                'scorer_1': check_conflicts(request.data.get('scorer_1_id'), 'Anotador Oficial'),
-                'scorer_2': check_conflicts(request.data.get('scorer_2_id'), 'Anotador Auxiliar'),
+            # 1. Map and Validate
+            staff_ids = {
+                'ampayer_1': request.data.get('ampayer_1_id'),
+                'ampayer_2': request.data.get('ampayer_2_id'),
+                'ampayer_3': request.data.get('ampayer_3_id'),
+                'scorer_1': request.data.get('scorer_1_id'),
+                'scorer_2': request.data.get('scorer_2_id'),
             }
+
+            for field, user_id in staff_ids.items():
+                if not user_id or user_id == "" or str(user_id) == "0":
+                    setattr(game, field, None)
+                else:
+                    user = check_conflicts(user_id, field)
+                    if user:
+                        setattr(game, field, user)
+                        # Create/Update Assignment record
+                        role_label = 'Ampayer' if 'ampayer' in field else 'Anotador'
+                        GameAssignment.objects.update_or_create(
+                            game=game, official=user,
+                            defaults={'role_in_game': role_label, 'status': GameAssignment.Status.ASSIGNED, 'notified_at': timezone.now()}
+                        )
+                        # Notify
+                        Notification.objects.get_or_create(
+                            user=user, game=game, notification_type='game_assignment', status='pending',
+                            defaults={'title': "Nueva Asignación", 'message': f"Asignado como {role_label} al juego {game}"}
+                        )
 
             if conflicts:
                 return Response({'status': 'conflict', 'errors': conflicts}, status=status.HTTP_400_BAD_REQUEST)
 
-            def process_assignment(user, role_field, role_in_game_label):
-                setattr(game, role_field, user)
-                if not user:
-                    # If user is removed, we should cleanup the assignments (optional but good practice)
-                    # For now just clearing the field is enough for the UI to reflect it.
-                    return
-                
-                GameAssignment.objects.update_or_create(
-                    game=game, official=user,
-                    defaults={'role_in_game': role_in_game_label, 'status': GameAssignment.Status.ASSIGNED, 'notified_at': timezone.now()}
-                )
-                Notification.objects.create(
-                    user=user, title="Nueva Asignación de Juego",
-                    message=f"Has sido asignado como {role_in_game_label} al juego {game} vs {game.visitor_team} el {game.date} a las {game.time}.",
-                    game=game, notification_type='game_assignment', status='pending'
-                )
+            # 2. Update Game Status
+            has_assignments = any([game.ampayer_1, game.ampayer_2, game.ampayer_3, game.scorer_1, game.scorer_2])
+            if has_assignments:
+                if game.status == Game.Status.PENDING:
+                    game.status = Game.Status.ASSIGNED
+            else:
+                game.status = Game.Status.PENDING
 
-            for field, user in staff_map.items():
-                process_assignment(user, field, 'Ampayer' if 'ampayer' in field else 'Anotador')
-
-            game.status = Game.Status.ASSIGNED
             game.save()
-            return Response({'status': 'assigned', 'message': 'Personal asignado correctamente.'}, status=status.HTTP_200_OK)
+            return Response({'status': 'success', 'message': 'Asignaciones actualizadas correctamente.'})
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
