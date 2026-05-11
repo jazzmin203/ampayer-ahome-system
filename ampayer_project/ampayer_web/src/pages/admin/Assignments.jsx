@@ -50,13 +50,14 @@ export default function Assignments() {
 
     // 🔹 Cargar juegos por liga y fecha
     useEffect(() => {
-        if (!selectedLeague || !selectedDate) return;
+        if (!selectedLeague) return; // Permitimos selectedDate vacio para "hoy o futuros"
 
         const source = axios.CancelToken.source();
         setLoading(true);
 
+        const dateParam = selectedDate ? `&date=${selectedDate}` : '';
         axios
-            .get(`${API}/games/?league_id=${selectedLeague}&date=${selectedDate}`, {
+            .get(`${API}/games/?league_id=${selectedLeague}${dateParam}`, {
                 headers,
                 cancelToken: source.token,
             })

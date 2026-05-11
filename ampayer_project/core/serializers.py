@@ -85,6 +85,15 @@ class LeagueSerializer(serializers.ModelSerializer):
     class Meta:
         model = League
         fields = '__all__'
+        extra_kwargs = {
+            'slug': {'required': False, 'allow_blank': True}
+        }
+        
+    def create(self, validated_data):
+        from django.utils.text import slugify
+        if not validated_data.get('slug'):
+            validated_data['slug'] = slugify(validated_data.get('name', ''))
+        return super().create(validated_data)
         
     def get_active_season(self, obj):
         active = obj.seasons.filter(is_active=True).first()
@@ -211,6 +220,24 @@ class GameDetailSerializer(serializers.ModelSerializer):
             'runner_on_1b_info', 'runner_on_2b_info', 'runner_on_3b_info',
             'assignments', 'cancellation_reason', 'plays', 'lineups'
         ]
+
+    def create(self, validated_data):
+        local_team = validated_data.get('local_team')
+        if local_team:
+            if not validated_data.get('category'):
+                validated_data['category'] = local_team.category
+            if not validated_data.get('season') and local_team.category:
+                validated_data['season'] = local_team.category.season
+        return super().create(validated_data)
+        
+    def update(self, instance, validated_data):
+        local_team = validated_data.get('local_team', instance.local_team)
+        if local_team:
+            if not validated_data.get('category') and not instance.category:
+                validated_data['category'] = local_team.category
+            if not validated_data.get('season') and not instance.season and local_team.category:
+                validated_data['season'] = local_team.category.season
+        return super().update(instance, validated_data)
 
 
 # -----------------------------------------------------------------------------

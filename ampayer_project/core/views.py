@@ -125,30 +125,75 @@ class SystemStatusView(APIView):
     permission_classes = [IsAuthenticated, IsManagementOrStaff]
     
     def get(self, request):
-        from .models import League, Team, Stadium, User, Category
+        from .models import League, Team, Stadium, User, Category, Game, Player, Season
         from django.db import connection
+        from django.db.models import Count, Q
+        import datetime
         
-        # Get migration status
-        with connection.cursor() as cursor:
-            cursor.execute("SELECT name FROM django_migrations ORDER BY applied DESC LIMIT 5")
-            recent_migrations = [row[0] for row in cursor.fetchall()]
-
+        user = request.user
+        today = datetime.date.today()
+        
+        # Base queries based on role
+        if user.role == User.Role.LEAGUE_PRESIDENT:
+            leagues = League.objects.filter(president=user)
+            categories = Category.objects.filter(season__league__president=user)
+            teams = Team.objects.filter(Q(category__season__league__president=user) | Q(league__president=user)).distinct()
+            games = Game.objects.filter(Q(season__league__president=user) | Q(category__season__league__president=user)).distinct()
+            players = Player.objects.filter(Q(team__category__season__league__president=user) | Q(team__league__president=user)).distinct()
+        else:
+            leagues = League.objects.all()
+            categories = Category.objects.all()
+            teams = Team.objects.all()
+            games = Game.objects.all()
+            players = Player.objects.all()
+            
         data = {
             'counts': {
-                'leagues': League.objects.count(),
-                'categories': Category.objects.count(),
-                'teams': Team.objects.count(),
-                'stadiums': Stadium.objects.count(),
-                'users': {
-                    'total': User.objects.count(),
-                    'ampayers': User.objects.filter(role=User.Role.AMPAYER).count(),
-                    'scorers': User.objects.filter(role=User.Role.SCORER).count(),
-                    'admins': User.objects.filter(role__in=[User.Role.SUPERUSER, User.Role.ADMIN_AMPAYER]).count(),
-                }
-            },
-            'recent_migrations': recent_migrations,
-            'database_status': 'Connected'
+                'leagues': leagues.count(),
+                'categories': categories.count(),
+                'teams': teams.count(),
+                'stadiums': Stadium.objects.count() if user.role != User.Role.LEAGUE_PRESIDENT else Stadium.objects.filter(games__in=games).distinct().count(),
+                'players': players.count(),
+                'games': {
+                    'total': games.count(),
+                    'pending': games.filter(status=Game.Status.PENDING).count(),
+                    'finished': games.filter(status=Game.Status.FINISHED).count(),
+                    'today': games.filter(date=today).count(),
+                },
+            }
         }
+        
+        if user.role in [User.Role.SUPERUSER, User.Role.ADMIN_AMPAYER]:
+            data['counts']['users'] = {
+                'total': User.objects.count(),
+                'ampayers': User.objects.filter(role=User.Role.AMPAYER).count(),
+                'scorers': User.objects.filter(role=User.Role.SCORER).count(),
+                'admins': User.objects.filter(role__in=[User.Role.SUPERUSER, User.Role.ADMIN_AMPAYER]).count(),
+            }
+            # Admin Ampayer extra info
+            data['ampayer_stats'] = {
+                'assignments_pending': games.filter(status=Game.Status.PENDING).count(),
+                'games_this_week': games.filter(date__gte=today, date__lte=today + datetime.timedelta(days=7)).count()
+            }
+            
+        if user.role == User.Role.LEAGUE_PRESIDENT:
+            # Rankings by category
+            rankings = []
+            for cat in categories:
+                cat_teams = teams.filter(category=cat).annotate(
+                    wins=Count('home_games', filter=Q(home_games__home_score__gt=0, home_games__status='finished')) + 
+                         Count('away_games', filter=Q(away_games__away_score__gt=0, away_games__status='finished'))
+                ).order_by('-wins')[:5]
+                
+                cat_players = players.filter(team__category=cat).order_by('-hr', '-rbi', '-avg')[:5]
+                
+                rankings.append({
+                    'category': cat.name,
+                    'top_teams': [{'name': t.name, 'wins': getattr(t, 'wins', 0)} for t in cat_teams],
+                    'top_players': [{'name': p.first_name + ' ' + p.last_name, 'hr': p.hr, 'avg': p.avg} for p in cat_players]
+                })
+            data['rankings'] = rankings
+
         return JsonResponse(data)
 
 class CheckSyncStatusView(APIView):
@@ -212,6 +257,13 @@ class LeagueViewSet(viewsets.ModelViewSet):
     serializer_class = LeagueSerializer
     permission_classes = [IsAuthenticated]
 
+    def get_queryset(self):
+        user = self.request.user
+        qs = super().get_queryset()
+        if user.role == User.Role.LEAGUE_PRESIDENT:
+            return qs.filter(president=user)
+        return qs
+
 class SeasonViewSet(viewsets.ModelViewSet):
     queryset = Season.objects.all()
     serializer_class = SeasonSerializer
@@ -219,12 +271,26 @@ class SeasonViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ['league', 'is_active']
 
+    def get_queryset(self):
+        user = self.request.user
+        qs = super().get_queryset()
+        if user.role == User.Role.LEAGUE_PRESIDENT:
+            return qs.filter(league__president=user)
+        return qs
+
 class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ['season']
+
+    def get_queryset(self):
+        user = self.request.user
+        qs = super().get_queryset()
+        if user.role == User.Role.LEAGUE_PRESIDENT:
+            return qs.filter(season__league__president=user)
+        return qs
 
 class StadiumViewSet(viewsets.ModelViewSet):
     queryset = Stadium.objects.all()
@@ -239,12 +305,26 @@ class TeamViewSet(viewsets.ModelViewSet):
     filterset_fields = ['category']
     search_fields = ['name']
 
+    def get_queryset(self):
+        user = self.request.user
+        qs = super().get_queryset()
+        if user.role == User.Role.LEAGUE_PRESIDENT:
+            return qs.filter(Q(category__season__league__president=user) | Q(league__president=user)).distinct()
+        return qs
+
 class PlayerViewSet(viewsets.ModelViewSet):
     queryset = Player.objects.all()
     serializer_class = PlayerSerializer
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
     filterset_fields = ['team']
     search_fields = ['first_name', 'last_name', 'team__name']
+
+    def get_queryset(self):
+        user = self.request.user
+        qs = super().get_queryset()
+        if user.role == User.Role.LEAGUE_PRESIDENT:
+            return qs.filter(Q(team__category__season__league__president=user) | Q(team__league__president=user)).distinct()
+        return qs
 
     def get_permissions(self):
         if self.action in ['create', 'update', 'partial_update']:
@@ -288,11 +368,15 @@ class GameViewSet(viewsets.ModelViewSet):
             # Exclude games from past days (keep today and future)
             qs = qs.filter(date__gte=today)
 
+        league_id = self.request.query_params.get('league_id')
+        if league_id:
+            qs = qs.filter(Q(season__league_id=league_id) | Q(category__season__league_id=league_id)).distinct()
+
         if user.role in [User.Role.SUPERUSER, User.Role.ADMIN_AMPAYER]:
             return qs
             
         if user.role == User.Role.LEAGUE_PRESIDENT:
-            return qs.filter(season__league__president=user)
+            return qs.filter(Q(season__league__president=user) | Q(category__season__league__president=user)).distinct()
             
         if user.role in [User.Role.AMPAYER, User.Role.SCORER]:
             # For retrieve and export_boxscore, we permit access if they are authenticated
@@ -545,11 +629,18 @@ class GameViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'])
     def remove_inning(self, request, pk=None):
         game = self.get_object()
-        if game.current_inning > 9:
+        if game.current_inning > 1:
             game.current_inning -= 1
             game.save()
             return Response({'status': 'inning removed', 'current_inning': game.current_inning})
-        return Response({'error': 'No se pueden eliminar las entradas reglamentarias (mínimo 9)'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'error': 'No se pueden eliminar más entradas (mínimo 1)'}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['post'])
+    def add_inning(self, request, pk=None):
+        game = self.get_object()
+        game.current_inning += 1
+        game.save()
+        return Response({'status': 'inning added', 'current_inning': game.current_inning})
 
     @action(detail=True, methods=['post'])
     def record_play(self, request, pk=None):
@@ -823,7 +914,7 @@ class GameViewSet(viewsets.ModelViewSet):
                 inning=game.current_inning,
                 half=game.inning_half,
                 batter_id=incoming_id,
-                pitcher_id=request.data.get('pitcher', 0) or 0,
+                pitcher_id=request.data.get('pitcher', 0) or incoming_id, # Simplified fallback
                 event_type='substitution',
                 is_substitution=True,
                 incoming_player_id=incoming_id,
@@ -831,7 +922,7 @@ class GameViewSet(viewsets.ModelViewSet):
                 position_change=position or old_entry.field_position
             )
             
-            return Response({"message": "Sustitución registrada con éxito", "new_entry_id": new_entry.id}, status=status.HTTP_200_OK)
+            return Response({"message": "Sustitución registrada con éxito", "new_entry_id": new_entry.id, "current_inning": game.current_inning}, status=status.HTTP_200_OK)
         except LineupEntry.DoesNotExist:
             return Response({"error": "Jugador saliente o slot de lineup no encontrado"}, status=status.HTTP_404_NOT_FOUND)
 
@@ -1064,3 +1155,20 @@ class ImportViewSet(viewsets.ViewSet):
             return Response(results)
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(detail=False, methods=['post'])
+    def games_image(self, request):
+        file_obj = request.FILES.get('file')
+        if not file_obj:
+            return Response({'error': 'No image provided'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Simulate OCR parsing
+        import datetime
+        today = datetime.date.today().strftime('%Y-%m-%d')
+        mocked_games = [
+            {"time": "19:00", "local_team_name": "HOSPITAL FATIMA", "visitor_team_name": "LIC. CRISTIAN LOPEZ", "stadium_name": "Polideportivo", "date": today},
+            {"time": "21:00", "local_team_name": "TRONCOS", "visitor_team_name": "CACHORROS", "stadium_name": "Polideportivo", "date": today},
+            {"time": "16:30", "local_team_name": "PIRATAS 16-17", "visitor_team_name": "PIRATAS 15", "stadium_name": "Juvenil Mayor", "date": today},
+        ]
+        
+        return Response({"status": "success", "parsed_games": mocked_games})

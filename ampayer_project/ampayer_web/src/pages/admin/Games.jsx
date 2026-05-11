@@ -3,6 +3,7 @@ import { getGames, createGame, deleteGame, updateGame } from "../../api/gameApi"
 import { getTeams } from "../../api/teamApi";
 import { getStadiums } from "../../api/stadiumApi";
 import { getLeagues } from "../../api/leagueApi";
+import api from "../../api/axios";
 
 export default function Games() {
     const [games, setGames] = useState([]);
@@ -193,16 +194,49 @@ export default function Games() {
 
     return (
         <div className="p-6">
-            <h1 className="text-2xl font-bold mb-4">Panel de Juegos</h1>
+            <div className="flex justify-between items-center mb-4">
+                <h1 className="text-2xl font-bold">Panel de Juegos</h1>
+                <div>
+                    <input type="file" id="ocr_upload" className="hidden" accept="image/*" onChange={async (e) => {
+                        const file = e.target.files[0];
+                        if (!file) return;
+                        const fd = new FormData();
+                        fd.append("file", file);
+                        try {
+                            const res = await api.post("import/games_image/", fd);
+                            alert("Juegos extraídos de la imagen con éxito (Simulación).\n\n" + res.data.parsed_games.map(g => `${g.time} - ${g.local_team_name} vs ${g.visitor_team_name} (${g.stadium_name})`).join('\n'));
+                            // Aquí se podrían precargar en un estado para confirmarlos masivamente
+                        } catch (err) {
+                            alert("Error al extraer juegos");
+                        }
+                        e.target.value = null; // reset input
+                    }} />
+                    <button onClick={() => document.getElementById('ocr_upload').click()} className="bg-purple-600 text-white px-4 py-2 rounded shadow hover:bg-purple-700">
+                        Subir Imagen Calendario (OCR)
+                    </button>
+                </div>
+            </div>
             {error && <p className="text-red-500 mb-4">{error}</p>}
 
             <div className="bg-white shadow p-4 rounded mb-6 grid grid-cols-1 md:grid-cols-6 gap-3 items-end">
                 <div>
                     <label className="block mb-1">Liga</label>
-                    <select name="league" value={formData.league} onChange={handleChange} className="border rounded px-2 py-1 w-full">
-                        <option value="">Selecciona una liga</option>
-                        {leagues.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
-                    </select>
+                    <div className="flex">
+                        <select name="league" value={formData.league} onChange={handleChange} className="border rounded px-2 py-1 w-full">
+                            <option value="">Selecciona una liga</option>
+                            {leagues.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
+                        </select>
+                        <button onClick={async () => {
+                            const name = prompt("Nueva liga:");
+                            if(name) {
+                                try {
+                                    const res = await api.post("leagues/", {name});
+                                    loadLeagues();
+                                    setFormData({...formData, league: res.data.id});
+                                } catch (e) { alert("Error al crear liga"); }
+                            }
+                        }} className="ml-1 px-2 bg-gray-200 rounded">+</button>
+                    </div>
                 </div>
 
                 <div>
@@ -217,26 +251,43 @@ export default function Games() {
 
                 <div>
                     <label className="block mb-1">Equipo Local</label>
-                    <select name="local_team" value={formData.local_team} onChange={handleChange} className="border rounded px-2 py-1 w-full">
-                        <option value="">Selecciona</option>
-                        {filteredTeams.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
-                    </select>
+                    <div className="flex">
+                        <select name="local_team" value={formData.local_team} onChange={handleChange} className="border rounded px-2 py-1 w-full">
+                            <option value="">Selecciona</option>
+                            {filteredTeams.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+                        </select>
+                        <button onClick={() => alert("Primero crear la categoría desde la base de datos o API. El equipo requiere categoría.")} className="ml-1 px-2 bg-gray-200 rounded">+</button>
+                    </div>
                 </div>
 
                 <div>
                     <label className="block mb-1">Equipo Visitante</label>
-                    <select name="visitor_team" value={formData.visitor_team} onChange={handleChange} className="border rounded px-2 py-1 w-full">
-                        <option value="">Selecciona</option>
-                        {filteredTeams.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
-                    </select>
+                    <div className="flex">
+                        <select name="visitor_team" value={formData.visitor_team} onChange={handleChange} className="border rounded px-2 py-1 w-full">
+                            <option value="">Selecciona</option>
+                            {filteredTeams.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+                        </select>
+                    </div>
                 </div>
 
                 <div>
                     <label className="block mb-1">Estadio</label>
-                    <select name="stadium" value={formData.stadium} onChange={handleChange} className="border rounded px-2 py-1 w-full">
-                        <option value="">Selecciona</option>
-                        {filteredStadiums.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-                    </select>
+                    <div className="flex">
+                        <select name="stadium" value={formData.stadium} onChange={handleChange} className="border rounded px-2 py-1 w-full">
+                            <option value="">Selecciona</option>
+                            {filteredStadiums.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                        </select>
+                        <button onClick={async () => {
+                            const name = prompt("Nuevo estadio:");
+                            if(name) {
+                                try {
+                                    const res = await api.post("stadiums/", {name});
+                                    loadStadiums();
+                                    setFormData({...formData, stadium: res.data.id});
+                                } catch (e) { alert("Error al crear estadio"); }
+                            }
+                        }} className="ml-1 px-2 bg-gray-200 rounded">+</button>
+                    </div>
                 </div>
 
                 <div>

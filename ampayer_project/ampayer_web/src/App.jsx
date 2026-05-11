@@ -5,6 +5,7 @@ import Home from "./pages/Home";
 
 // Admin
 import AdminHome from "./pages/admin/AdminHome";
+import Dashboard from "./pages/admin/Dashboard";
 
 import Leagues from "./pages/admin/Leagues";
 import Games from "./pages/admin/Games";
@@ -33,6 +34,7 @@ export default function App() {
           }
         >
           <Route index element={<Home />} />
+          <Route path="dashboard" element={<Dashboard />} />
           <Route path="leagues" element={<Leagues />} />
           <Route path="games" element={<Games />} />
           <Route path="stadiums" element={<Stadiums />} />

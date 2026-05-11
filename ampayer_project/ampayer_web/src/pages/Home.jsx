@@ -3,7 +3,7 @@ import { motion } from "framer-motion"
 import { Link } from "react-router-dom"
 
 const adminMenu = [
-    { title: "Dashboard", to: "/dashboard", icon: "📊", color: "from-blue-500 to-blue-600" },
+    { title: "Dashboard", to: "/admin/dashboard", icon: "📊", color: "from-blue-500 to-blue-600" },
     { title: "Ligas", to: "/admin/leagues", icon: "🏆", color: "from-yellow-500 to-yellow-600" },
     { title: "Juegos", to: "/admin/games", icon: "⚾", color: "from-red-500 to-red-600" },
     { title: "Ampayers", to: "/admin/teams", icon: "👨‍⚖️", color: "from-purple-500 to-purple-600" },
