@@ -102,6 +102,9 @@ class PlayerSerializer(serializers.ModelSerializer):
     class Meta:
         model = Player
         fields = '__all__'
+        extra_kwargs = {
+            'jersey_number': {'required': False, 'allow_null': True}
+        }
 
 class LineupEntrySerializer(serializers.ModelSerializer):
     player_name = serializers.CharField(source='player.last_name', read_only=True)
