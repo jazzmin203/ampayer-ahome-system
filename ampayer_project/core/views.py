@@ -426,8 +426,12 @@ class GameViewSet(viewsets.ModelViewSet):
                 return Response({'status': 'conflict', 'errors': conflicts}, status=status.HTTP_400_BAD_REQUEST)
 
             def process_assignment(user, role_field, role_in_game_label):
-                if not user: return
                 setattr(game, role_field, user)
+                if not user:
+                    # If user is removed, we should cleanup the assignments (optional but good practice)
+                    # For now just clearing the field is enough for the UI to reflect it.
+                    return
+                
                 GameAssignment.objects.update_or_create(
                     game=game, official=user,
                     defaults={'role_in_game': role_in_game_label, 'status': GameAssignment.Status.ASSIGNED, 'notified_at': timezone.now()}
