@@ -557,7 +557,7 @@ def generate_umpire_distribution_pdf(games_queryset):
     date_gen = datetime.date.today().strftime("%d/%m/%Y")
     sig_t = Table([[
         Paragraph("____________________________\nFirma Coordinador de Ampayers", footer_s),
-        Paragraph("Sistema Ampayer - Liga Infantil y Juvenil de Beisbol\nGenerado el " + date_gen, footer_s),
+        Paragraph("Sistema Ampayer Profe Bernal\nGenerado el " + date_gen, footer_s),
         Paragraph("____________________________\nFirma Presidente de Liga", footer_s),
     ]], colWidths=[doc.width/3]*3)
     sig_t.setStyle(TableStyle([
