@@ -13,6 +13,7 @@ export default function Leagues() {
     
     const [name, setName] = useState("");
     const [description, setDescription] = useState("");
+    const [city, setCity] = useState("Los Mochis");
     const [president, setPresident] = useState("");
     const [editingId, setEditingId] = useState(null);
 
@@ -38,6 +39,7 @@ export default function Leagues() {
     const resetForm = () => {
         setName("");
         setDescription("");
+        setCity("Los Mochis");
         setPresident("");
         setEditingId(null);
     };
@@ -47,6 +49,7 @@ export default function Leagues() {
             const data = { 
                 name, 
                 description: description || "",
+                city: city || "Los Mochis",
                 president: president ? parseInt(president) : null
             };
 
@@ -60,13 +63,14 @@ export default function Leagues() {
             loadLeagues();
         } catch (err) {
             console.error("ERROR:", err.response?.data || err.message);
-            alert("Error al guardar la liga");
+            alert("Error al guardar la liga: " + JSON.stringify(err.response?.data || err.message));
         }
     };
 
     const handleEdit = (league) => {
         setName(league.name);
         setDescription(league.description);
+        setCity(league.city || "Los Mochis");
         setPresident(league.president || "");
         setEditingId(league.id);
     };
@@ -82,7 +86,7 @@ export default function Leagues() {
         <div className="p-6">
             <h1 className="text-2xl font-bold mb-6">Administración de Ligas</h1>
 
-            <div className="bg-white shadow rounded p-4 mb-8 grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+            <div className="bg-white shadow rounded p-4 mb-8 grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
                 <div>
                     <label className="block text-sm mb-1 text-gray-700">Nombre de Liga</label>
                     <input
@@ -90,6 +94,15 @@ export default function Leagues() {
                         placeholder="Ej. Liga Infantil"
                         value={name}
                         onChange={(e) => setName(e.target.value)}
+                    />
+                </div>
+                <div>
+                    <label className="block text-sm mb-1 text-gray-700">Ciudad</label>
+                    <input
+                        className="border rounded px-3 py-2 w-full"
+                        placeholder="Ej. Los Mochis"
+                        value={city}
+                        onChange={(e) => setCity(e.target.value)}
                     />
                 </div>
                 <div>
@@ -132,6 +145,7 @@ export default function Leagues() {
                     <thead>
                         <tr className="bg-gray-100 border-b">
                             <th className="px-4 py-3 font-semibold">Liga</th>
+                            <th className="px-4 py-3 font-semibold">Ciudad</th>
                             <th className="px-4 py-3 font-semibold">Descripción</th>
                             <th className="px-4 py-3 font-semibold">Presidente Asignado</th>
                             <th className="px-4 py-3 font-semibold w-32">Acciones</th>
@@ -143,6 +157,7 @@ export default function Leagues() {
                             return (
                             <tr key={l.id} className="border-b hover:bg-gray-50">
                                 <td className="px-4 py-3 font-medium">{l.name}</td>
+                                <td className="px-4 py-3 text-gray-600">{l.city}</td>
                                 <td className="px-4 py-3 text-gray-600">{l.description}</td>
                                 <td className="px-4 py-3 text-gray-600">
                                     {p ? `${p.first_name} ${p.last_name}` : <span className="text-gray-400 italic">No asignado</span>}
@@ -158,7 +173,7 @@ export default function Leagues() {
                             </tr>
                         )})}
                         {leagues.length === 0 && (
-                            <tr><td colSpan="4" className="text-center py-4 text-gray-500">No hay ligas registradas.</td></tr>
+                            <tr><td colSpan="5" className="text-center py-4 text-gray-500">No hay ligas registradas.</td></tr>
                         )}
                     </tbody>
                 </table>
