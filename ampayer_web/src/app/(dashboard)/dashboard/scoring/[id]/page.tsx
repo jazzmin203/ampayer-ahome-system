@@ -32,13 +32,18 @@ interface Game {
     runner_on_1b_info?: Player;
     runner_on_2b_info?: Player;
     runner_on_3b_info?: Player;
+    current_inning: number;
+    inning_half: string;
+    home_score: number;
+    away_score: number;
+    lineups?: any[];
 }
 
 interface Player {
     id: number;
     first_name: string;
     last_name: string;
-    jersey_number: string;
+    jersey_number?: number | string;
 }
 
 interface LineupEntry {
