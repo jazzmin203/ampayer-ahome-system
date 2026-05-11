@@ -50,6 +50,11 @@ interface Game {
     ampayer_3_name?: string;
     home_score: number;
     away_score: number;
+    ampayer_1?: number;
+    ampayer_2?: number;
+    ampayer_3?: number;
+    scorer_1?: number;
+    scorer_2?: number;
 }
 
 export default function GamesPage() {
@@ -189,6 +194,18 @@ export default function GamesPage() {
             console.error('Error canceling game', error);
             alert('Error al cancelar juego');
         }
+    };
+
+    const handleAssignClick = (game: Game) => {
+        setSelectedGameId(game.id);
+        setAssignForm({
+            ampayer_1_id: game.ampayer_1?.toString() || '',
+            ampayer_2_id: game.ampayer_2?.toString() || '',
+            ampayer_3_id: game.ampayer_3?.toString() || '',
+            scorer_1_id: game.scorer_1?.toString() || '',
+            scorer_2_id: game.scorer_2?.toString() || ''
+        });
+        setShowAssignModal(true);
     };
 
     const handleAssignAmpayers = async (e: React.FormEvent) => {
@@ -589,9 +606,9 @@ export default function GamesPage() {
                                         size="sm"
                                         variant="outline"
                                         className="border-dashed border-gray-300 text-gray-500 hover:border-blue-500 hover:text-blue-600"
-                                        onClick={() => { setSelectedGameId(game.id); setShowAssignModal(true); }}
+                                        onClick={() => handleAssignClick(game)}
                                     >
-                                        <Plus className="mr-2 h-4 w-4" /> {game.ampayer_1_name ? 'Reasignar' : 'Asignar'}
+                                        <Plus className="mr-2 h-4 w-4" /> {game.ampayer_1 ? 'Reasignar' : 'Asignar'}
                                     </Button>
                                 )}
                             </div>

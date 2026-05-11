@@ -168,8 +168,9 @@ class GameListSerializer(serializers.ModelSerializer):
             'local_team', 'local_team_name', 
             'visitor_team', 'visitor_team_name', 
             'category', 'category_name',
+            'ampayer_1', 'ampayer_2', 'ampayer_3',
+            'scorer_1', 'scorer_2',
             'ampayer_1_name', 'ampayer_2_name', 'ampayer_3_name',
-            'scorer_1_name', 'scorer_2_name',
             'scorer_1_name', 'scorer_2_name',
             'home_score', 'away_score', 'cancellation_reason'
         ]

@@ -313,7 +313,7 @@ export function Scorecard({ game, onPlayRecorded }: ScorecardProps) {
                 await api.post(`/games/${game.id}/save_lineup/`, { 
                     lineup: [{
                         ...updatedEntry,
-                        team: teamSide === 'local' ? game.local_team : game.visitor_team
+                        team: side === 'local' ? game.local_team : game.visitor_team
                     }] 
                 });
                 console.log("Lineup auto-saved");
