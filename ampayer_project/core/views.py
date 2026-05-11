@@ -701,7 +701,7 @@ class GameViewSet(viewsets.ModelViewSet):
             # 1. Reverse Game Score
             if play.runs_scored > 0:
                 if play.half == 'top':
-                    game.visitor_score = max(0, game.visitor_score - play.runs_scored)
+                    game.away_score = max(0, game.away_score - play.runs_scored)
                 else:
                     game.home_score = max(0, game.home_score - play.runs_scored)
 
@@ -775,6 +775,9 @@ class GameViewSet(viewsets.ModelViewSet):
             return Response({"status": "deleted", "message": "Jugada eliminada y estadísticas revertidas."})
         except Play.DoesNotExist:
             return Response({"error": "Jugada no encontrada"}, status=status.HTTP_404_NOT_FOUND)
+
+    @action(detail=True, methods=['post'])
+    def substitution(self, request, pk=None):
         """
         Record a player substitution and update lineup.
         """
