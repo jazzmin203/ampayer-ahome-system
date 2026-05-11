@@ -364,20 +364,21 @@ export function Scorecard({ game, onPlayRecorded }: ScorecardProps) {
             setIsAddPlayerModalOpen(false);
             setNewPlayerData({ first_name: '', last_name: '', jersey_number: '' });
             setEditingPlayerId(null);
-        } catch (error) {
+        } catch (error: any) {
             console.error("Error saving player", error);
-            alert("Error al guardar jugador");
+            const serverError = error.response?.data ? JSON.stringify(error.response.data) : "Error desconocido";
+            alert(`Error al guardar jugador: ${serverError}`);
         } finally {
             setLoading(false);
         }
     };
 
-    const handleSubstitution = async (side: 'local' | 'visitor', index: number, oldPlayerId: number) => {
+    const handleSubstitution = async (side: 'local' | 'visitor', index: number, oldPlayerId: number, preSelectedNewPlayerId?: number) => {
         const teamSide = side === 'local' ? localLineup : visitorLineup;
         const entry = teamSide[index];
-        const newPlayerId = entry.player;
+        const newPlayerId = preSelectedNewPlayerId || entry.player;
 
-        if (newPlayerId === 0 || newPlayerId === oldPlayerId) {
+        if (newPlayerId === 0 || (newPlayerId === oldPlayerId && !preSelectedNewPlayerId)) {
             alert("Selecciona un nuevo jugador para realizar la sustitución.");
             return;
         }
@@ -567,11 +568,14 @@ export function Scorecard({ game, onPlayRecorded }: ScorecardProps) {
                                                         onChange={(e) => updateLineupStat(side, teamLineup.indexOf(entry), 'player', parseInt(e.target.value))}
                                                     >
                                                         <option value={0}>Seleccionar jugador...</option>
-                                                        {players?.map(p => (
-                                                            <option key={p.id} value={p.id}>
-                                                                #{p.jersey_number} {p.first_name} {p.last_name}
-                                                            </option>
-                                                        ))}
+                                                        {players?.map(p => {
+                                                            const isAlreadyInLineup = teamLineup.some(e => e.is_active && e.player === p.id && e.id !== entry.id);
+                                                            return (
+                                                                <option key={p.id} value={p.id} disabled={isAlreadyInLineup}>
+                                                                    #{p.jersey_number} {p.first_name} {p.last_name} {isAlreadyInLineup ? '(Ya en lineup)' : ''}
+                                                                </option>
+                                                            );
+                                                        })}
                                                     </select>
                                                     {entry.is_active && (
                                                         <div className="flex items-center gap-1">
@@ -603,10 +607,48 @@ export function Scorecard({ game, onPlayRecorded }: ScorecardProps) {
                                                             >
                                                                 <Edit size={14} />
                                                             </button>
+                                                            {game.status === 'in_progress' && (
+                                                                <div className="flex items-center gap-1 border-l pl-1 ml-1 border-gray-200">
+                                                                    <input 
+                                                                        type="checkbox" 
+                                                                        id={`sub-check-${entry.id}`} 
+                                                                        className="w-3 h-3 cursor-pointer"
+                                                                        onChange={(e) => {
+                                                                            const isChecked = e.target.checked;
+                                                                            const subSlot = document.getElementById(`sub-slot-${entry.id}`);
+                                                                            if (subSlot) subSlot.classList.toggle('hidden', !isChecked);
+                                                                        }}
+                                                                    />
+                                                                    <label htmlFor={`sub-check-${entry.id}`} className="text-[9px] font-bold text-orange-600 cursor-pointer uppercase">Cambio</label>
+                                                                </div>
+                                                            )}
                                                         </div>
                                                     )}
                                                     {entry.exit_inning && <span className="text-[10px] bg-red-100 text-red-600 px-1 rounded">Out E{entry.exit_inning}</span>}
                                                     {entry.entry_inning && entry.entry_inning > 1 && <span className="text-[10px] bg-green-100 text-green-600 px-1 rounded">In E{entry.entry_inning}</span>}
+                                                </div>
+                                            ))}
+                                            
+                                            {/* Hidden Substitution Slot */}
+                                            {entries.filter(e => e.is_active).map(activeEntry => (
+                                                <div key={`sub-slot-container-${activeEntry.id}`} id={`sub-slot-${activeEntry.id}`} className="hidden mt-1 p-1 bg-orange-50 border border-orange-200 rounded flex flex-col gap-1">
+                                                    <div className="text-[9px] font-bold text-orange-700 uppercase px-1">Nuevo Jugador:</div>
+                                                    <select
+                                                        className="w-full bg-white border border-orange-300 rounded px-1 py-1 text-xs"
+                                                        value={0}
+                                                        onChange={(e) => {
+                                                            const newId = parseInt(e.target.value);
+                                                            if (newId > 0) {
+                                                                handleSubstitution(side, teamLineup.indexOf(activeEntry), activeEntry.player, newId);
+                                                            }
+                                                        }}
+                                                    >
+                                                        <option value={0}>Seleccionar...</option>
+                                                        {players?.map(p => {
+                                                            const isInLineup = teamLineup.some(e => e.is_active && e.player === p.id);
+                                                            return <option key={p.id} value={p.id} disabled={isInLineup}>{p.first_name} {p.last_name} {isInLineup ? '(En juego)' : ''}</option>;
+                                                        })}
+                                                    </select>
                                                 </div>
                                             ))}
                                             {entries.length === 0 && (

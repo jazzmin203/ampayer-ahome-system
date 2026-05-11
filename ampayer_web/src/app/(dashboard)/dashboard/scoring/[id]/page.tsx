@@ -315,6 +315,7 @@ export default function ScoringDetailPage() {
 
             {/* Interactive Scorecard Grid */}
             <Scorecard
+                key={`${game.id}-${game.current_inning}-${game.actual_start_time}`}
                 game={game as any}
                 onPlayRecorded={fetchGameData}
             />
