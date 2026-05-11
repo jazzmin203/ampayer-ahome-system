@@ -789,7 +789,14 @@ export function Scorecard({ game, onPlayRecorded }: ScorecardProps) {
                                 >
                                     Quitar E
                                 </Button>
-                                <Button size="sm" onClick={handleAddInning} className="bg-orange-500 hover:bg-orange-600 h-8">
+                                <Button 
+                                    size="sm" 
+                                    onClick={async () => {
+                                        await api.post(`/games/${game.id}/add_inning/`);
+                                        onPlayRecorded();
+                                    }} 
+                                    className="bg-orange-500 hover:bg-orange-600 h-8"
+                                >
                                     + Entrada
                                 </Button>
                             </>
