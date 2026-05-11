@@ -378,6 +378,15 @@ class GameViewSet(viewsets.ModelViewSet):
         game = self.get_object()
         conflicts = []
         
+        # 0. Check for duplicates in the same request
+        selected_ids = [
+            request.data.get('ampayer_1_id'), request.data.get('ampayer_2_id'), request.data.get('ampayer_3_id'),
+            request.data.get('scorer_1_id'), request.data.get('scorer_2_id')
+        ]
+        ids_only = [str(sid) for sid in selected_ids if sid]
+        if len(ids_only) != len(set(ids_only)):
+            conflicts.append("No puedes asignar a la misma persona en múltiples roles para el mismo juego.")
+
         def check_conflicts(user_id, role_label):
             if not user_id: return None
             try:
