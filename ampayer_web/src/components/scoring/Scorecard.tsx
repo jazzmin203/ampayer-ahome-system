@@ -637,18 +637,20 @@ export function Scorecard({ game, onPlayRecorded }: ScorecardProps) {
                                                                 <Edit size={14} />
                                                             </button>
                                                             {game.status === 'in_progress' && (
-                                                                <div className="flex items-center gap-1 border-l pl-1 ml-1 border-gray-200">
-                                                                    <input 
-                                                                        type="checkbox" 
-                                                                        id={`sub-check-${entry.id}`} 
-                                                                        className="w-3 h-3 cursor-pointer"
-                                                                        onChange={(e) => {
-                                                                            const isChecked = e.target.checked;
-                                                                            const subSlot = document.getElementById(`sub-slot-${entry.id}`);
-                                                                            if (subSlot) subSlot.classList.toggle('hidden', !isChecked);
-                                                                        }}
-                                                                    />
-                                                                    <label htmlFor={`sub-check-${entry.id}`} className="text-[9px] font-bold text-orange-600 cursor-pointer uppercase">Cambio</label>
+                                                                <div className="flex items-center gap-1 border-l pl-2 ml-1 border-gray-300">
+                                                                    <div className="flex items-center bg-orange-50 border border-orange-200 rounded px-1.5 py-0.5">
+                                                                        <input 
+                                                                            type="checkbox" 
+                                                                            id={`sub-check-${entry.id}`} 
+                                                                            className="w-3.5 h-3.5 cursor-pointer accent-orange-600"
+                                                                            onChange={(e) => {
+                                                                                const isChecked = e.target.checked;
+                                                                                const subSlot = document.getElementById(`sub-slot-${entry.id}`);
+                                                                                if (subSlot) subSlot.classList.toggle('hidden', !isChecked);
+                                                                            }}
+                                                                        />
+                                                                        <label htmlFor={`sub-check-${entry.id}`} className="text-[10px] font-black text-orange-700 cursor-pointer ml-1 select-none">CAMBIO</label>
+                                                                    </div>
                                                                 </div>
                                                             )}
                                                         </div>
@@ -772,6 +774,26 @@ export function Scorecard({ game, onPlayRecorded }: ScorecardProps) {
                         <Button size="sm" onClick={handleSaveLineup} disabled={loading} className="bg-blue-600 hover:bg-blue-700 h-8">
                             {loading ? 'Guardando...' : 'Guardar Lineup'}
                         </Button>
+                        {game.status === 'in_progress' && (
+                            <>
+                                <Button 
+                                    size="sm" 
+                                    variant="outline" 
+                                    onClick={async () => {
+                                        if (confirm("¿Seguro que deseas quitar la última entrada?")) {
+                                            await api.post(`/games/${game.id}/remove_inning/`);
+                                            onPlayRecorded();
+                                        }
+                                    }} 
+                                    className="border-red-200 text-red-600 hover:bg-red-50 h-8"
+                                >
+                                    Quitar E
+                                </Button>
+                                <Button size="sm" onClick={handleAddInning} className="bg-orange-500 hover:bg-orange-600 h-8">
+                                    + Entrada
+                                </Button>
+                            </>
+                        )}
                         {!game.actual_start_time && (
                             <Button size="sm" onClick={handleStartGame} className="bg-green-600 hover:bg-green-700 h-8">Iniciar Juego</Button>
                         )}

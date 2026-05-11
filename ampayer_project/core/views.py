@@ -537,6 +537,15 @@ class GameViewSet(viewsets.ModelViewSet):
 
 
     @action(detail=True, methods=['post'])
+    def remove_inning(self, request, pk=None):
+        game = self.get_object()
+        if game.current_inning > 9:
+            game.current_inning -= 1
+            game.save()
+            return Response({'status': 'inning removed', 'current_inning': game.current_inning})
+        return Response({'error': 'No se pueden eliminar las entradas reglamentarias (mínimo 9)'}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['post'])
     def record_play(self, request, pk=None):
         """
         Record a granular play and update score and game state (outs, inning).
@@ -692,8 +701,9 @@ class GameViewSet(viewsets.ModelViewSet):
 
             # 2. Reverse Batter Stats
             try:
-                batter_entry = LineupEntry.objects.get(game=game, player=play.batter, is_active=True)
-                batter_entry.PA = max(0, batter_entry.PA - 1)
+                batter_entry = LineupEntry.objects.filter(game=game, player=play.batter, is_active=True).first()
+                if batter_entry:
+                    batter_entry.PA = max(0, batter_entry.PA - 1)
                 event = play.event_type.lower()
                 
                 if event in ['single', 'double', 'triple', 'homerun']:
@@ -728,9 +738,10 @@ class GameViewSet(viewsets.ModelViewSet):
             # 3. Reverse Pitcher Stats
             try:
                 pitcher_team = game.local_team if play.half == 'top' else game.visitor_team
-                pitcher_entry = LineupEntry.objects.get(game=game, team=pitcher_team, player=play.pitcher, is_active=True)
+                pitcher_entry = LineupEntry.objects.filter(game=game, team=pitcher_team, player=play.pitcher, is_active=True).first()
                 
-                pitcher_entry.IP_outs = max(0, pitcher_entry.IP_outs - play.outs_recorded)
+                if pitcher_entry:
+                    pitcher_entry.IP_outs = max(0, pitcher_entry.IP_outs - play.outs_recorded)
                 game.outs = max(0, game.outs - play.outs_recorded) # Also reverse game outs if still in same inning
                 
                 event = play.event_type.lower()
