@@ -183,7 +183,6 @@ def run():
                     'role': User.Role.AMPAYER
                 }
             )
-            )
             user.set_password("pass123")
             user.save()
             if created:
@@ -191,6 +190,47 @@ def run():
             else:
                 print(f"Ampayer actualizado: {username} (pass123)")
                 
+        # 5. Juegos de Prueba
+        print("\n--- GENERANDO JUEGOS DE PRUEBA ---")
+        from core.models import Game
+        import datetime
+        from django.utils import timezone
+
+        # Obtener algunos equipos y estadios
+        test_teams = list(Team.objects.all()[:10])
+        test_stadiums = list(Stadium.objects.all()[:5])
+        
+        if len(test_teams) >= 2:
+            # Juego para Hoy
+            game_today, created = Game.objects.get_or_create(
+                local_team=test_teams[0],
+                visitor_team=test_teams[1],
+                date=timezone.now().date(),
+                defaults={
+                    'stadium': test_stadiums[0],
+                    'time': "16:00:00",
+                    'category': test_teams[0].category,
+                    'season': season,
+                    'status': Game.Status.PENDING
+                }
+            )
+            if created: print(f"Juego creado para hoy: {game_today}")
+
+            # Juego para Mañana
+            game_tomorrow, created = Game.objects.get_or_create(
+                local_team=test_teams[2],
+                visitor_team=test_teams[3],
+                date=timezone.now().date() + datetime.timedelta(days=1),
+                defaults={
+                    'stadium': test_stadiums[1],
+                    'time': "10:00:00",
+                    'category': test_teams[2].category,
+                    'season': season,
+                    'status': Game.Status.PENDING
+                }
+            )
+            if created: print(f"Juego creado para mañana: {game_tomorrow}")
+
     print("\nCarga de datos completada exitosamente.")
 
 if __name__ == "__main__":
