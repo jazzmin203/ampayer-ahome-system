@@ -287,23 +287,25 @@ export function Scorecard({ game, onPlayRecorded }: ScorecardProps) {
         }
     };
 
-    const updateLineupStat = async (teamSide: 'local' | 'visitor', index: number, field: keyof LineupEntry, value: any) => {
-        const lineup = teamSide === 'local' ? [...localLineup] : [...visitorLineup];
-        
-        // Validation: No duplicates in active lineup
+    const updateLineupStat = async (side: 'local' | 'visitor', index: number, field: string, value: any) => {
+        const teamSide = side === 'local' ? [...localLineup] : [...visitorLineup];
+        const otherSide = side === 'local' ? visitorLineup : localLineup;
+        const updatedEntry = { ...teamSide[index], [field]: value };
+
+        // Duplicate check
         if (field === 'player' && value > 0) {
-            const alreadyExists = lineup.some((e, i) => i !== index && e.is_active && e.player === value);
-            if (alreadyExists) {
-                alert("Este jugador ya está en el lineup activo. Para un reingreso o cambio de posición, asegúrate de que el registro anterior no esté activo.");
+            const isDuplicate = teamSide.some((e, i) => e.is_active && e.player === value && i !== index);
+            const isInOtherTeam = otherSide.some(e => e.is_active && e.player === value);
+            
+            if (isDuplicate || isInOtherTeam) {
+                alert("Este jugador ya está registrado en el lineup activo de uno de los equipos.");
                 return;
             }
         }
 
-        const updatedEntry = { ...lineup[index], [field]: value };
-        lineup[index] = updatedEntry;
-        
-        if (teamSide === 'local') setLocalLineup(lineup);
-        else setVisitorLineup(lineup);
+        teamSide[index] = updatedEntry;
+        if (side === 'local') setLocalLineup(teamSide);
+        else setVisitorLineup(teamSide);
 
         // Auto-save player and position changes to prevent data loss
         if ((field === 'player' || field === 'field_position') && updatedEntry.player > 0) {
