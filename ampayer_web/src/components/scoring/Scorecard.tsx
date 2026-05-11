@@ -406,7 +406,23 @@ export function Scorecard({ game, onPlayRecorded }: ScorecardProps) {
 
     const ScorecardCell = ({ plays, inning, onClick }: { plays: any[], inning: number, onClick: () => void }) => {
         const play = plays.find(p => p.inning === inning);
-        if (!play) return <td className="p-0 border border-gray-300 text-center cursor-pointer hover:bg-blue-50 h-12 w-12" onClick={onClick}>-</td>;
+        
+        const deletePlay = async (e: React.MouseEvent) => {
+            e.stopPropagation();
+            if (!confirm("¿Seguro que deseas borrar esta jugada? Se revertirán las estadísticas.")) return;
+            try {
+                await api.post(`/games/${game.id}/delete_play/`, { play_id: play.id });
+                onPlayRecorded();
+            } catch (error) {
+                console.error(error);
+                alert("Error al borrar la jugada");
+            }
+        };
+
+        if (!play) return <td className="p-0 border border-gray-300 text-center cursor-pointer hover:bg-blue-50 h-12 w-12 group" onClick={onClick}>
+            <div className="hidden group-hover:block"><Plus size={12} className="mx-auto text-blue-300" /></div>
+            <span className="group-hover:hidden">-</span>
+        </td>;
 
         let content = '';
         let colorClass = "text-gray-400";
@@ -494,8 +510,19 @@ export function Scorecard({ game, onPlayRecorded }: ScorecardProps) {
         };
 
         return (
-            <td className="p-0 border border-gray-300 text-center cursor-pointer hover:bg-blue-50 h-12 w-12" onClick={onClick}>
-                {drawDiamond()}
+            <td className="p-0 border border-gray-300 text-center relative h-12 w-12 group">
+                <div className="absolute top-0 right-0 p-0.5 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                    <button 
+                        onClick={deletePlay}
+                        className="bg-red-50 text-red-500 hover:bg-red-100 rounded p-0.5 shadow-sm"
+                        title="Borrar Jugada"
+                    >
+                        <Trash2 size={10} />
+                    </button>
+                </div>
+                <div className="cursor-pointer h-full w-full flex items-center justify-center hover:bg-blue-50/30" onClick={onClick}>
+                    {drawDiamond()}
+                </div>
             </td>
         );
     };

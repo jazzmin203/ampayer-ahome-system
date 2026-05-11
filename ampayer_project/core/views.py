@@ -667,7 +667,93 @@ class GameViewSet(viewsets.ModelViewSet):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=True, methods=['post'])
-    def substitution(self, request, pk=None):
+    def delete_play(self, request, pk=None):
+        """
+        Deletes a specific play and attempts to reverse its statistical impact.
+        """
+        game = self.get_object()
+        play_id = request.data.get('play_id')
+        if not play_id:
+            return Response({"error": "Falta play_id"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            play = Play.objects.get(id=play_id, game=game)
+            
+            # 1. Reverse Game Score
+            if play.runs_scored > 0:
+                if play.half == 'top':
+                    game.visitor_score = max(0, game.visitor_score - play.runs_scored)
+                else:
+                    game.home_score = max(0, game.home_score - play.runs_scored)
+
+            # 2. Reverse Batter Stats
+            try:
+                batter_entry = LineupEntry.objects.get(game=game, player=play.batter, is_active=True)
+                batter_entry.PA = max(0, batter_entry.PA - 1)
+                event = play.event_type.lower()
+                
+                if event in ['single', 'double', 'triple', 'homerun']:
+                    batter_entry.H = max(0, batter_entry.H - 1)
+                    batter_entry.AB = max(0, batter_entry.AB - 1)
+                    if event == 'single': batter_entry.singles = max(0, batter_entry.singles - 1)
+                    elif event == 'double': batter_entry.doubles = max(0, batter_entry.doubles - 1)
+                    elif event == 'triple': batter_entry.triples = max(0, batter_entry.triples - 1)
+                    elif event == 'homerun': 
+                        batter_entry.HR = max(0, batter_entry.HR - 1)
+                        batter_entry.R = max(0, batter_entry.R - 1)
+                elif event == 'walk':
+                    batter_entry.BB = max(0, batter_entry.BB - 1)
+                elif event == 'hit_by_pitch':
+                    batter_entry.HBP = max(0, batter_entry.HBP - 1)
+                elif 'out' in event or event == 'strikeout':
+                    # Sacrifice flies/hits usually don't count as AB. 
+                    # Assuming for now we just reverse what we added.
+                    batter_entry.AB = max(0, batter_entry.AB - 1)
+                    if event == 'strikeout':
+                        batter_entry.SO = max(0, batter_entry.SO - 1)
+                elif 'error' in event:
+                    batter_entry.AB = max(0, batter_entry.AB - 1)
+
+                if play.runs_scored > 0:
+                    batter_entry.RBI = max(0, batter_entry.RBI - play.runs_scored)
+                
+                batter_entry.save()
+            except LineupEntry.DoesNotExist:
+                pass
+
+            # 3. Reverse Pitcher Stats
+            try:
+                pitcher_team = game.local_team if play.half == 'top' else game.visitor_team
+                pitcher_entry = LineupEntry.objects.get(game=game, team=pitcher_team, player=play.pitcher, is_active=True)
+                
+                pitcher_entry.IP_outs = max(0, pitcher_entry.IP_outs - play.outs_recorded)
+                game.outs = max(0, game.outs - play.outs_recorded) # Also reverse game outs if still in same inning
+                
+                event = play.event_type.lower()
+                if event in ['single', 'double', 'triple', 'homerun']:
+                    pitcher_entry.pitch_H = max(0, pitcher_entry.pitch_H - 1)
+                    if event == 'homerun':
+                        pitcher_entry.pitch_HR = max(0, pitcher_entry.pitch_HR - 1)
+                elif event == 'walk':
+                    pitcher_entry.pitch_BB = max(0, pitcher_entry.pitch_BB - 1)
+                elif event == 'strikeout':
+                    pitcher_entry.pitch_SO = max(0, pitcher_entry.pitch_SO - 1)
+                
+                if play.runs_scored > 0:
+                    pitcher_entry.pitch_R = max(0, pitcher_entry.pitch_R - play.runs_scored)
+                    pitcher_entry.pitch_ER = max(0, pitcher_entry.pitch_ER - play.runs_scored)
+                
+                pitcher_entry.save()
+            except LineupEntry.DoesNotExist:
+                pass
+
+            # 4. Delete the Play
+            play.delete()
+            game.save()
+            
+            return Response({"status": "deleted", "message": "Jugada eliminada y estadísticas revertidas."})
+        except Play.DoesNotExist:
+            return Response({"error": "Jugada no encontrada"}, status=status.HTTP_404_NOT_FOUND)
         """
         Record a player substitution and update lineup.
         """
