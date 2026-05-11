@@ -6,7 +6,7 @@ const adminMenu = [
     { title: "Dashboard", to: "/admin/dashboard", icon: "📊", color: "from-blue-500 to-blue-600" },
     { title: "Ligas", to: "/admin/leagues", icon: "🏆", color: "from-yellow-500 to-yellow-600" },
     { title: "Juegos", to: "/admin/games", icon: "⚾", color: "from-red-500 to-red-600" },
-    { title: "Ampayers", to: "/admin/teams", icon: "👨‍⚖️", color: "from-purple-500 to-purple-600" },
+    { title: "Equipos", to: "/admin/teams", icon: "👥", color: "from-purple-500 to-purple-600" },
     { title: "Estadios", to: "/admin/stadiums", icon: "🏟️", color: "from-slate-500 to-slate-600" },
     { title: "Programación", to: "/admin/assignments", icon: "📅", color: "from-indigo-500 to-indigo-600" },
 ]

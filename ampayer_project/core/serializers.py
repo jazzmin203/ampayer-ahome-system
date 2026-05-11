@@ -67,10 +67,16 @@ class TeamSerializer(serializers.ModelSerializer):
 
 class CategorySerializer(serializers.ModelSerializer):
     teams = TeamSerializer(many=True, read_only=True)
+    season_league_name = serializers.SerializerMethodField()
     
     class Meta:
         model = Category
         fields = '__all__'
+
+    def get_season_league_name(self, obj):
+        if obj.season and obj.season.league:
+            return obj.season.league.name
+        return ""
 
 class SeasonSerializer(serializers.ModelSerializer):
     categories = CategorySerializer(many=True, read_only=True)

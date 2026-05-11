@@ -44,10 +44,25 @@ export default function Games() {
         try {
             const res = await getLeagues();
             setLeagues(res.data);
+            if (res.data.length === 1 && !formData.league) {
+                setFormData(prev => ({ ...prev, league: res.data[0].id }));
+            }
         } catch {
             setError("No se pudieron cargar las ligas");
         }
     };
+
+    // Filter teams and stadiums whenever formData.league, teams, or stadiums change
+    useEffect(() => {
+        if (formData.league) {
+            const leagueId = parseInt(formData.league);
+            setFilteredTeams(teams.filter((t) => t.league === leagueId));
+            setFilteredStadiums(stadiums.filter((s) => s.league === leagueId));
+        } else {
+            setFilteredTeams([]);
+            setFilteredStadiums([]);
+        }
+    }, [formData.league, teams, stadiums]);
 
     const loadTeams = async () => {
         try {
@@ -71,11 +86,7 @@ export default function Games() {
     const handleChange = (e) => {
         const { name, value } = e.target;
 
-        // Si cambia la liga, resetear equipos y estadios filtrados
         if (name === "league") {
-            const leagueId = parseInt(value) || "";
-            setFilteredTeams(teams.filter((t) => t.league === leagueId));
-            setFilteredStadiums(stadiums.filter((s) => s.league === leagueId));
             setFormData({
                 ...formData,
                 league: value,
@@ -154,9 +165,6 @@ export default function Games() {
             visitor_team: game.visitor_team ?? "",
             stadium: game.stadium ?? "",
         });
-
-        setFilteredTeams(teams.filter((t) => t.league === game.league));
-        setFilteredStadiums(stadiums.filter((s) => s.league === game.league));
 
         setEditingId(game.id);
         setError("");

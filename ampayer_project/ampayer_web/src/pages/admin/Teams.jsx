@@ -1,20 +1,25 @@
 import { useEffect, useState } from "react";
 import { getTeams, createTeam, deleteTeam } from "../../api/teamApi";
-import { getLeagues } from "../../api/leagueApi";
+import api from "../../api/axios";
 
 export default function Teams() {
     const [teams, setTeams] = useState([]);
-    const [leagues, setLeagues] = useState([]);
-    const [leagueId, setLeagueId] = useState("");
+    const [categories, setCategories] = useState([]);
+    const [categoryId, setCategoryId] = useState("");
     const [name, setName] = useState("");
     const [shortName, setShortName] = useState("");
     const [coach, setCoach] = useState("");
 
     const loadData = async () => {
-        const t = await getTeams();
-        const l = await getLeagues();
-        setTeams(t.data);
-        setLeagues(l.data);
+        try {
+            const t = await getTeams();
+            setTeams(t.data);
+            const c = await api.get("categories/");
+            setCategories(c.data);
+            if (c.data.length === 1) setCategoryId(c.data[0].id);
+        } catch (e) {
+            console.error(e);
+        }
     };
 
     useEffect(() => {
@@ -22,73 +27,105 @@ export default function Teams() {
     }, []);
 
     const handleCreate = async () => {
-        if (!leagueId) return alert("Selecciona una liga");
+        if (!categoryId) return alert("Selecciona una liga/categoría");
+        if (!name) return alert("El nombre es requerido");
 
-        await createTeam({
-        league: leagueId,
-        name,
-        short_name: shortName,
-        coach,
-        });
+        try {
+            // Team model requiere 'category' y opcionalmente 'league'
+            // El backend asocia automáticamente la liga mediante la categoría
+            await createTeam({
+                category: parseInt(categoryId),
+                name,
+                short_name: shortName,
+                manager_name: coach,
+            });
 
-        setName("");
-        setShortName("");
-        setCoach("");
-        setLeagueId("");
-        loadData();
+            setName("");
+            setShortName("");
+            setCoach("");
+            loadData();
+        } catch (e) {
+            console.error(e);
+            alert("Error al crear equipo");
+        }
     };
 
     const handleDelete = async (id) => {
-        await deleteTeam(id);
-        loadData();
+        if (confirm("¿Eliminar este equipo?")) {
+            await deleteTeam(id);
+            loadData();
+        }
     };
 
     return (
-        <div>
-        <h2>Equipos</h2>
+        <div className="p-6">
+            <h1 className="text-2xl font-bold mb-6">Administración de Equipos</h1>
 
-        <select
-            value={leagueId}
-            onChange={(e) => setLeagueId(e.target.value)}
-        >
-            <option value="">-- Selecciona Liga --</option>
-            {leagues.map((l) => (
-            <option key={l.id} value={l.id}>
-                {l.name}
-            </option>
-            ))}
-        </select>
+            <div className="bg-white shadow p-4 rounded mb-6 grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
+                <div>
+                    <label className="block mb-1 text-sm text-gray-700">Liga / Categoría</label>
+                    <select
+                        className="border rounded px-2 py-2 w-full"
+                        value={categoryId}
+                        onChange={(e) => setCategoryId(e.target.value)}
+                    >
+                        <option value="">-- Selecciona --</option>
+                        {categories.map((c) => (
+                            <option key={c.id} value={c.id}>
+                                {c.season_league_name || `Temporada ${c.season}`} - {c.name}
+                            </option>
+                        ))}
+                    </select>
+                </div>
 
-        <input
-            placeholder="Nombre del equipo"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-        />
+                <div>
+                    <label className="block mb-1 text-sm text-gray-700">Nombre del Equipo</label>
+                    <input
+                        className="border rounded px-2 py-2 w-full"
+                        placeholder="Ej. Dodgers"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                    />
+                </div>
 
-        <input
-            placeholder="Nombre corto"
-            value={shortName}
-            onChange={(e) => setShortName(e.target.value)}
-        />
+                <div>
+                    <label className="block mb-1 text-sm text-gray-700">Nombre Corto</label>
+                    <input
+                        className="border rounded px-2 py-2 w-full"
+                        placeholder="Ej. DOD"
+                        value={shortName}
+                        onChange={(e) => setShortName(e.target.value)}
+                    />
+                </div>
 
-        <input
-            placeholder="Coach"
-            value={coach}
-            onChange={(e) => setCoach(e.target.value)}
-        />
+                <div>
+                    <label className="block mb-1 text-sm text-gray-700">Manager / Coach</label>
+                    <input
+                        className="border rounded px-2 py-2 w-full"
+                        placeholder="Nombre del manager"
+                        value={coach}
+                        onChange={(e) => setCoach(e.target.value)}
+                    />
+                </div>
 
-        <button onClick={handleCreate}>Crear equipo</button>
-
-        <ul>
-            {teams.map((t) => (
-            <li key={t.id}>
-                {t.name}
-                <button onClick={() => handleDelete(t.id)}>
-                Eliminar
+                <button onClick={handleCreate} className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                    Crear Equipo
                 </button>
-            </li>
-            ))}
-        </ul>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {teams.map((t) => (
+                    <div key={t.id} className="bg-white p-4 rounded shadow flex justify-between items-center">
+                        <div>
+                            <p className="font-bold">{t.name} <span className="text-gray-500 text-sm">({t.short_name})</span></p>
+                            <p className="text-sm text-gray-600">Manager: {t.manager_name || 'N/A'}</p>
+                        </div>
+                        <button onClick={() => handleDelete(t.id)} className="text-red-500 hover:text-red-700">
+                            Eliminar
+                        </button>
+                    </div>
+                ))}
+            </div>
         </div>
     );
 }

@@ -38,6 +38,7 @@ export default function App() {
           <Route path="leagues" element={<Leagues />} />
           <Route path="games" element={<Games />} />
           <Route path="stadiums" element={<Stadiums />} />
+          <Route path="teams" element={<Teams />} />
           <Route path="assignments" element={<Assignments />} />
         </Route>
 
