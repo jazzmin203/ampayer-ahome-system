@@ -233,5 +233,14 @@ def run():
 
     print("\nCarga de datos completada exitosamente.")
 
+    # Generar los juegos del OCR
+    print("Generando juegos leídos del OCR...")
+    try:
+        from create_games_from_ocr import run_ocr_games
+        run_ocr_games()
+        print("Juegos del OCR generados correctamente.")
+    except ImportError:
+        print("No se encontró create_games_from_ocr.py. Omitiendo.")
+
 if __name__ == "__main__":
     run()
