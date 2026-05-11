@@ -392,8 +392,8 @@ class GameViewSet(viewsets.ModelViewSet):
             overlapping = Game.objects.filter(
                 date=game.date,
             ).filter(
-                models.Q(ampayer_1=user) | models.Q(ampayer_2=user) | models.Q(ampayer_3=user) |
-                models.Q(scorer_1=user) | models.Q(scorer_2=user)
+                Q(ampayer_1=user) | Q(ampayer_2=user) | Q(ampayer_3=user) |
+                Q(scorer_1=user) | Q(scorer_2=user)
             ).exclude(id=game.id)
             
             for other_game in overlapping:
