@@ -403,37 +403,40 @@ class GameViewSet(viewsets.ModelViewSet):
             
             return user
 
-        # Validate proposed staff
-        staff_map = {
-            'ampayer_1': check_conflicts(request.data.get('ampayer_1_id'), 'Ampayer Principal'),
-            'ampayer_2': check_conflicts(request.data.get('ampayer_2_id'), 'Ampayer Base'),
-            'ampayer_3': check_conflicts(request.data.get('ampayer_3_id'), 'Ampayer Base'),
-            'scorer_1': check_conflicts(request.data.get('scorer_1_id'), 'Anotador Oficial'),
-            'scorer_2': check_conflicts(request.data.get('scorer_2_id'), 'Anotador Auxiliar'),
-        }
+        try:
+            # Validate proposed staff
+            staff_map = {
+                'ampayer_1': check_conflicts(request.data.get('ampayer_1_id'), 'Ampayer Principal'),
+                'ampayer_2': check_conflicts(request.data.get('ampayer_2_id'), 'Ampayer Base'),
+                'ampayer_3': check_conflicts(request.data.get('ampayer_3_id'), 'Ampayer Base'),
+                'scorer_1': check_conflicts(request.data.get('scorer_1_id'), 'Anotador Oficial'),
+                'scorer_2': check_conflicts(request.data.get('scorer_2_id'), 'Anotador Auxiliar'),
+            }
 
-        if conflicts:
-            return Response({'status': 'conflict', 'errors': conflicts}, status=status.HTTP_400_BAD_REQUEST)
+            if conflicts:
+                return Response({'status': 'conflict', 'errors': conflicts}, status=status.HTTP_400_BAD_REQUEST)
 
-        def process_assignment(user, role_field, role_in_game_label):
-            if not user: return
-            setattr(game, role_field, user)
-            GameAssignment.objects.update_or_create(
-                game=game, official=user,
-                defaults={'role_in_game': role_in_game_label, 'status': GameAssignment.Status.ASSIGNED, 'notified_at': timezone.now()}
-            )
-            Notification.objects.create(
-                user=user, title="Nueva Asignación de Juego",
-                message=f"Has sido asignado como {role_in_game_label} al juego {game} vs {game.visitor_team} el {game.date} a las {game.time}.",
-                game=game, notification_type='game_assignment', status='pending'
-            )
+            def process_assignment(user, role_field, role_in_game_label):
+                if not user: return
+                setattr(game, role_field, user)
+                GameAssignment.objects.update_or_create(
+                    game=game, official=user,
+                    defaults={'role_in_game': role_in_game_label, 'status': GameAssignment.Status.ASSIGNED, 'notified_at': timezone.now()}
+                )
+                Notification.objects.create(
+                    user=user, title="Nueva Asignación de Juego",
+                    message=f"Has sido asignado como {role_in_game_label} al juego {game} vs {game.visitor_team} el {game.date} a las {game.time}.",
+                    game=game, notification_type='game_assignment', status='pending'
+                )
 
-        for field, user in staff_map.items():
-            process_assignment(user, field, 'Ampayer' if 'ampayer' in field else 'Anotador')
+            for field, user in staff_map.items():
+                process_assignment(user, field, 'Ampayer' if 'ampayer' in field else 'Anotador')
 
-        game.status = Game.Status.ASSIGNED
-        game.save()
-        return Response({'status': 'assigned', 'message': 'Personal asignado correctamente.'}, status=status.HTTP_200_OK)
+            game.status = Game.Status.ASSIGNED
+            game.save()
+            return Response({'status': 'assigned', 'message': 'Personal asignado correctamente.'}, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @action(detail=True, methods=['post'])
     def confirm_assignment(self, request, pk=None):

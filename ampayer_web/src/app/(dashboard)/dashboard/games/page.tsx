@@ -201,9 +201,12 @@ export default function GamesPage() {
             setShowAssignModal(false);
             setAssignForm({ ampayer_1_id: '', ampayer_2_id: '', ampayer_3_id: '', scorer_1_id: '', scorer_2_id: '' });
             fetchData();
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error assigning ampayers', error);
-            alert('Error al asignar ampayers');
+            const errorMsg = error.response?.data?.errors 
+                ? error.response.data.errors.join('\n') 
+                : (error.response?.data?.error || 'Error al asignar ampayers');
+            alert('Atención:\n' + errorMsg);
         }
     };
 
