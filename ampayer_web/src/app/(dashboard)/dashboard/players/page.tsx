@@ -20,7 +20,7 @@ interface Player {
     id: number;
     first_name: string;
     last_name: string;
-    jersey_number: number;
+    jersey_number?: number;
     team: number;
     team_name?: string;
     positions?: string;
@@ -126,7 +126,7 @@ export default function PlayersPage() {
         setFormData({
             first_name: player.first_name,
             last_name: player.last_name,
-            jersey_number: player.jersey_number.toString(),
+            jersey_number: player.jersey_number?.toString() || '',
             team: player.team.toString(),
             positions: player.positions || '',
         });
@@ -139,7 +139,7 @@ export default function PlayersPage() {
         const payload = {
             ...formData,
             team: parseInt(formData.team),
-            jersey_number: parseInt(formData.jersey_number) || 0,
+            jersey_number: formData.jersey_number ? parseInt(formData.jersey_number) : null,
         };
         try {
             if (editingPlayer) {
@@ -398,10 +398,9 @@ export default function PlayersPage() {
 
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-1">
-                            <label className="text-sm font-medium text-gray-700">Número (Jersey) *</label>
+                            <label className="text-sm font-medium text-gray-700">Número (Jersey)</label>
                             <Input
                                 type="number"
-                                required
                                 min={0}
                                 max={99}
                                 placeholder="ej: 7"

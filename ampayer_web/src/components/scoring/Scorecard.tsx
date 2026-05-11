@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Save, AlertCircle, Trash2, UserPlus, RefreshCw, Activity } from 'lucide-react';
+import { Save, AlertCircle, Trash2, UserPlus, RefreshCw, Activity, Edit, Plus } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -9,7 +9,7 @@ import PlayModal from './PlayModal';
 
 interface Player {
     id: number;
-    jersey_number: number;
+    jersey_number?: number;
     first_name: string;
     last_name: string;
 }
@@ -89,6 +89,7 @@ export function Scorecard({ game, onPlayRecorded }: ScorecardProps) {
     const [isAddPlayerModalOpen, setIsAddPlayerModalOpen] = useState(false);
     const [newPlayerTeam, setNewPlayerTeam] = useState<{ side: 'local' | 'visitor', id: number } | null>(null);
     const [newPlayerData, setNewPlayerData] = useState({ first_name: '', last_name: '', jersey_number: '' });
+    const [editingPlayerId, setEditingPlayerId] = useState<number | null>(null);
 
     useEffect(() => {
         const fetchPlayers = async () => {
@@ -288,6 +289,16 @@ export function Scorecard({ game, onPlayRecorded }: ScorecardProps) {
 
     const updateLineupStat = async (teamSide: 'local' | 'visitor', index: number, field: keyof LineupEntry, value: any) => {
         const lineup = teamSide === 'local' ? [...localLineup] : [...visitorLineup];
+        
+        // Validation: No duplicates in active lineup
+        if (field === 'player' && value > 0) {
+            const alreadyExists = lineup.some((e, i) => i !== index && e.is_active && e.player === value);
+            if (alreadyExists) {
+                alert("Este jugador ya está en el lineup activo. Para un reingreso o cambio de posición, asegúrate de que el registro anterior no esté activo.");
+                return;
+            }
+        }
+
         const updatedEntry = { ...lineup[index], [field]: value };
         lineup[index] = updatedEntry;
         
@@ -311,34 +322,47 @@ export function Scorecard({ game, onPlayRecorded }: ScorecardProps) {
     };
 
     const handleAddPlayer = async () => {
-        if (!newPlayerTeam || !newPlayerData.first_name || !newPlayerData.last_name || !newPlayerData.jersey_number) {
-            alert("Completa todos los campos");
+        if (!newPlayerTeam || !newPlayerData.first_name || !newPlayerData.last_name) {
+            alert("Completa al menos el nombre y apellido");
             return;
         }
 
         setLoading(true);
         try {
-            const res = await api.post('/players/', {
+            const payload = {
                 ...newPlayerData,
-                team: newPlayerTeam.id
-            });
+                team: newPlayerTeam.id,
+                jersey_number: newPlayerData.jersey_number ? parseInt(newPlayerData.jersey_number) : null
+            };
+
+            let newPlayer;
+            if (editingPlayerId) {
+                const res = await api.patch(`/players/${editingPlayerId}/`, payload);
+                newPlayer = res.data;
+                alert("Jugador actualizado con éxito");
+            } else {
+                const res = await api.post('/players/', payload);
+                newPlayer = res.data;
+                alert("Jugador añadido con éxito");
+            }
             
-            const newPlayer = res.data;
-            // Update local state
+            // Update local state for team players list
             setTeamPlayers(prev => {
                 if (!prev) return prev;
-                return {
-                    ...prev,
-                    [newPlayerTeam.side]: [...prev[newPlayerTeam.side], newPlayer]
-                };
+                const side = newPlayerTeam.side;
+                const existing = prev[side] || [];
+                const updated = editingPlayerId 
+                    ? existing.map(p => p.id === editingPlayerId ? newPlayer : p)
+                    : [...existing, newPlayer];
+                return { ...prev, [side]: updated };
             });
             
             setIsAddPlayerModalOpen(false);
             setNewPlayerData({ first_name: '', last_name: '', jersey_number: '' });
-            alert("Jugador añadido con éxito");
+            setEditingPlayerId(null);
         } catch (error) {
-            console.error("Error adding player", error);
-            alert("Error al añadir jugador");
+            console.error("Error saving player", error);
+            alert("Error al guardar jugador");
         } finally {
             setLoading(false);
         }
@@ -545,14 +569,37 @@ export function Scorecard({ game, onPlayRecorded }: ScorecardProps) {
                                                             </option>
                                                         ))}
                                                     </select>
-                                                    {entry.is_active && game.status === 'in_progress' && (
-                                                        <button
-                                                            onClick={() => handleSubstitution(side, teamLineup.indexOf(entry), entry.player)}
-                                                            className="p-1 text-blue-500 hover:bg-blue-100 rounded-full transition-colors"
-                                                            title="Sustituir Jugador"
-                                                        >
-                                                            <RefreshCw size={14} />
-                                                        </button>
+                                                    {entry.is_active && (
+                                                        <div className="flex items-center gap-1">
+                                                            {game.status === 'in_progress' && (
+                                                                <button
+                                                                    onClick={() => handleSubstitution(side, teamLineup.indexOf(entry), entry.player)}
+                                                                    className="p-1 text-blue-500 hover:bg-blue-100 rounded-full transition-colors"
+                                                                    title="Sustituir Jugador"
+                                                                >
+                                                                    <RefreshCw size={14} />
+                                                                </button>
+                                                            )}
+                                                            <button
+                                                                onClick={() => {
+                                                                    const p = players?.find(x => x.id === entry.player);
+                                                                    if (p) {
+                                                                        setEditingPlayerId(p.id);
+                                                                        setNewPlayerData({
+                                                                            first_name: p.first_name,
+                                                                            last_name: p.last_name,
+                                                                            jersey_number: p.jersey_number?.toString() || ''
+                                                                        });
+                                                                        setNewPlayerTeam({ side, id: side === 'local' ? game.local_team : game.visitor_team });
+                                                                        setIsAddPlayerModalOpen(true);
+                                                                    }
+                                                                }}
+                                                                className="p-1 text-gray-400 hover:text-blue-500 hover:bg-gray-100 rounded-full transition-colors"
+                                                                title="Editar Datos del Jugador"
+                                                            >
+                                                                <Edit size={14} />
+                                                            </button>
+                                                        </div>
                                                     )}
                                                     {entry.exit_inning && <span className="text-[10px] bg-red-100 text-red-600 px-1 rounded">Out E{entry.exit_inning}</span>}
                                                     {entry.entry_inning && entry.entry_inning > 1 && <span className="text-[10px] bg-green-100 text-green-600 px-1 rounded">In E{entry.entry_inning}</span>}
@@ -662,9 +709,24 @@ export function Scorecard({ game, onPlayRecorded }: ScorecardProps) {
             <CardContent className="p-4">
                 {/* Line Score Table */}
                 <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 overflow-x-auto shadow-inner mb-6">
-                    <div className="flex items-center gap-2 mb-2 ml-1">
-                        <Activity className="h-4 w-4 text-gray-400" />
-                        <h5 className="text-xs font-bold text-gray-500 uppercase">Puntuación por Entradas</h5>
+                    <div className="flex items-center justify-between mb-2 ml-1">
+                        <div className="flex items-center gap-2">
+                            <Activity className="h-4 w-4 text-gray-400" />
+                            <h5 className="text-xs font-bold text-gray-500 uppercase">Puntuación por Entradas</h5>
+                        </div>
+                        <Button 
+                            size="xs" 
+                            variant="ghost" 
+                            className="text-[10px] h-6 px-2 text-blue-600 hover:bg-blue-50"
+                            onClick={async () => {
+                                try {
+                                    await api.patch(`/games/${game.id}/`, { current_inning: game.current_inning + 1 });
+                                    onPlayRecorded();
+                                } catch (e) { alert("Error al agregar entrada"); }
+                            }}
+                        >
+                            <Plus className="h-3 w-3 mr-1" /> Agregar Entrada
+                        </Button>
                     </div>
                     <table className="w-full text-center border-collapse bg-white rounded-md overflow-hidden">
                         <thead>
@@ -742,7 +804,7 @@ export function Scorecard({ game, onPlayRecorded }: ScorecardProps) {
                     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
                         <Card className="w-full max-w-md">
                             <CardHeader>
-                                <CardTitle>Registrar Nuevo Jugador</CardTitle>
+                                <CardTitle>{editingPlayerId ? 'Editar Jugador' : 'Registrar Nuevo Jugador'}</CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-4">
                                 <div className="space-y-2">
@@ -762,7 +824,7 @@ export function Scorecard({ game, onPlayRecorded }: ScorecardProps) {
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-sm font-medium">Número de Jersey</label>
+                                    <label className="text-sm font-medium">Número de Jersey (Opcional)</label>
                                     <Input 
                                         type="number"
                                         value={newPlayerData.jersey_number}
@@ -773,7 +835,7 @@ export function Scorecard({ game, onPlayRecorded }: ScorecardProps) {
                                 <div className="flex justify-end gap-2 pt-4">
                                     <Button variant="outline" onClick={() => setIsAddPlayerModalOpen(false)}>Cancelar</Button>
                                     <Button onClick={handleAddPlayer} disabled={loading} className="bg-blue-600 hover:bg-blue-700">
-                                        {loading ? 'Guardando...' : 'Guardar Jugador'}
+                                        {loading ? 'Guardando...' : (editingPlayerId ? 'Actualizar' : 'Guardar Jugador')}
                                     </Button>
                                 </div>
                             </CardContent>

@@ -376,55 +376,63 @@ class GameViewSet(viewsets.ModelViewSet):
         Creates GameAssignment records and sends notifications.
         """
         game = self.get_object()
+        conflicts = []
         
-        def process_assignment(user_id, role_field, role_in_game_label):
-            if not user_id:
-                return
-
+        def check_conflicts(user_id, role_label):
+            if not user_id: return None
             try:
                 user = User.objects.get(pk=user_id)
             except User.DoesNotExist:
-                return # Skip invalid IDs
+                return None
             
-            # Update Game FK
-            setattr(game, role_field, user)
+            # 1. Check for overlapping games (2 hour window)
+            import datetime
+            game_time = datetime.datetime.combine(game.date, game.time)
             
-            # Create/Update GameAssignment
-            GameAssignment.objects.update_or_create(
-                game=game,
-                official=user,
-                defaults={
-                    'role_in_game': role_in_game_label,
-                    'status': GameAssignment.Status.ASSIGNED,
-                    'notified_at': timezone.now()
-                }
-            )
+            overlapping = Game.objects.filter(
+                date=game.date,
+            ).filter(
+                models.Q(ampayer_1=user) | models.Q(ampayer_2=user) | models.Q(ampayer_3=user) |
+                models.Q(scorer_1=user) | models.Q(scorer_2=user)
+            ).exclude(id=game.id)
             
-            # Create Notification
-            Notification.objects.create(
-                user=user,
-                title="Nueva Asignación de Juego",
-                message=f"Has sido asignado como {role_in_game_label} al juego {game} vs {game.visitor_team} el {game.date} a las {game.time}.",
-                game=game,
-                notification_type='game_assignment',
-                status='pending'
-            )
+            for other_game in overlapping:
+                other_time = datetime.datetime.combine(other_game.date, other_game.time)
+                if abs((game_time - other_time).total_seconds()) < 7200: # 2 hours
+                    conflicts.append(f"{user.get_full_name()} ya está asignado al juego {other_game} a las {other_game.time}")
             
-            # WhatsApp (Placeholder for Phase 11)
-            # send_whatsapp_message(user.phone_number, ...)
+            return user
 
-        # Assign Ampayers
-        process_assignment(request.data.get('ampayer_1_id'), 'ampayer_1', 'Ampayer Principal')
-        process_assignment(request.data.get('ampayer_2_id'), 'ampayer_2', 'Ampayer Base')
-        process_assignment(request.data.get('ampayer_3_id'), 'ampayer_3', 'Ampayer Base')
-        
-        # Assign Scorers
-        process_assignment(request.data.get('scorer_1_id'), 'scorer_1', 'Anotador Oficial')
-        process_assignment(request.data.get('scorer_2_id'), 'scorer_2', 'Anotador Auxiliar')
+        # Validate proposed staff
+        staff_map = {
+            'ampayer_1': check_conflicts(request.data.get('ampayer_1_id'), 'Ampayer Principal'),
+            'ampayer_2': check_conflicts(request.data.get('ampayer_2_id'), 'Ampayer Base'),
+            'ampayer_3': check_conflicts(request.data.get('ampayer_3_id'), 'Ampayer Base'),
+            'scorer_1': check_conflicts(request.data.get('scorer_1_id'), 'Anotador Oficial'),
+            'scorer_2': check_conflicts(request.data.get('scorer_2_id'), 'Anotador Auxiliar'),
+        }
+
+        if conflicts:
+            return Response({'status': 'conflict', 'errors': conflicts}, status=status.HTTP_400_BAD_REQUEST)
+
+        def process_assignment(user, role_field, role_in_game_label):
+            if not user: return
+            setattr(game, role_field, user)
+            GameAssignment.objects.update_or_create(
+                game=game, official=user,
+                defaults={'role_in_game': role_in_game_label, 'status': GameAssignment.Status.ASSIGNED, 'notified_at': timezone.now()}
+            )
+            Notification.objects.create(
+                user=user, title="Nueva Asignación de Juego",
+                message=f"Has sido asignado como {role_in_game_label} al juego {game} vs {game.visitor_team} el {game.date} a las {game.time}.",
+                game=game, notification_type='game_assignment', status='pending'
+            )
+
+        for field, user in staff_map.items():
+            process_assignment(user, field, 'Ampayer' if 'ampayer' in field else 'Anotador')
 
         game.status = Game.Status.ASSIGNED
         game.save()
-        
         return Response({'status': 'assigned', 'message': 'Personal asignado correctamente.'}, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=['post'])
