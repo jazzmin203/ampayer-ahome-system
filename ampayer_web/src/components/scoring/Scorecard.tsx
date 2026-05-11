@@ -1,4 +1,5 @@
 
+// Updated: 2026-05-11 - All features consolidated
 import React, { useState, useEffect } from 'react';
 import { Save, AlertCircle, Trash2, UserPlus, RefreshCw, Activity, Edit, Plus } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
