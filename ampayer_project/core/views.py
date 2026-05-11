@@ -710,34 +710,32 @@ class GameViewSet(viewsets.ModelViewSet):
                 batter_entry = LineupEntry.objects.filter(game=game, player=play.batter, is_active=True).first()
                 if batter_entry:
                     batter_entry.PA = max(0, batter_entry.PA - 1)
-                event = play.event_type.lower()
-                
-                if event in ['single', 'double', 'triple', 'homerun']:
-                    batter_entry.H = max(0, batter_entry.H - 1)
-                    batter_entry.AB = max(0, batter_entry.AB - 1)
-                    if event == 'single': batter_entry.singles = max(0, batter_entry.singles - 1)
-                    elif event == 'double': batter_entry.doubles = max(0, batter_entry.doubles - 1)
-                    elif event == 'triple': batter_entry.triples = max(0, batter_entry.triples - 1)
-                    elif event == 'homerun': 
-                        batter_entry.HR = max(0, batter_entry.HR - 1)
-                        batter_entry.R = max(0, batter_entry.R - 1)
-                elif event == 'walk':
-                    batter_entry.BB = max(0, batter_entry.BB - 1)
-                elif event == 'hit_by_pitch':
-                    batter_entry.HBP = max(0, batter_entry.HBP - 1)
-                elif 'out' in event or event == 'strikeout':
-                    # Sacrifice flies/hits usually don't count as AB. 
-                    # Assuming for now we just reverse what we added.
-                    batter_entry.AB = max(0, batter_entry.AB - 1)
-                    if event == 'strikeout':
-                        batter_entry.SO = max(0, batter_entry.SO - 1)
-                elif 'error' in event:
-                    batter_entry.AB = max(0, batter_entry.AB - 1)
+                    event = play.event_type.lower()
+                    
+                    if event in ['single', 'double', 'triple', 'homerun']:
+                        batter_entry.H = max(0, batter_entry.H - 1)
+                        batter_entry.AB = max(0, batter_entry.AB - 1)
+                        if event == 'single': batter_entry.singles = max(0, batter_entry.singles - 1)
+                        elif event == 'double': batter_entry.doubles = max(0, batter_entry.doubles - 1)
+                        elif event == 'triple': batter_entry.triples = max(0, batter_entry.triples - 1)
+                        elif event == 'homerun': 
+                            batter_entry.HR = max(0, batter_entry.HR - 1)
+                            batter_entry.R = max(0, batter_entry.R - 1)
+                    elif event == 'walk':
+                        batter_entry.BB = max(0, batter_entry.BB - 1)
+                    elif event == 'hit_by_pitch':
+                        batter_entry.HBP = max(0, batter_entry.HBP - 1)
+                    elif 'out' in event or event == 'strikeout':
+                        batter_entry.AB = max(0, batter_entry.AB - 1)
+                        if event == 'strikeout':
+                            batter_entry.SO = max(0, batter_entry.SO - 1)
+                    elif 'error' in event:
+                        batter_entry.AB = max(0, batter_entry.AB - 1)
 
-                if play.runs_scored > 0:
-                    batter_entry.RBI = max(0, batter_entry.RBI - play.runs_scored)
-                
-                batter_entry.save()
+                    if play.runs_scored > 0:
+                        batter_entry.RBI = max(0, batter_entry.RBI - play.runs_scored)
+                    
+                    batter_entry.save()
             except LineupEntry.DoesNotExist:
                 pass
 
@@ -748,23 +746,23 @@ class GameViewSet(viewsets.ModelViewSet):
                 
                 if pitcher_entry:
                     pitcher_entry.IP_outs = max(0, pitcher_entry.IP_outs - play.outs_recorded)
-                game.outs = max(0, game.outs - play.outs_recorded) # Also reverse game outs if still in same inning
-                
-                event = play.event_type.lower()
-                if event in ['single', 'double', 'triple', 'homerun']:
-                    pitcher_entry.pitch_H = max(0, pitcher_entry.pitch_H - 1)
-                    if event == 'homerun':
-                        pitcher_entry.pitch_HR = max(0, pitcher_entry.pitch_HR - 1)
-                elif event == 'walk':
-                    pitcher_entry.pitch_BB = max(0, pitcher_entry.pitch_BB - 1)
-                elif event == 'strikeout':
-                    pitcher_entry.pitch_SO = max(0, pitcher_entry.pitch_SO - 1)
-                
-                if play.runs_scored > 0:
-                    pitcher_entry.pitch_R = max(0, pitcher_entry.pitch_R - play.runs_scored)
-                    pitcher_entry.pitch_ER = max(0, pitcher_entry.pitch_ER - play.runs_scored)
-                
-                pitcher_entry.save()
+                    game.outs = max(0, game.outs - play.outs_recorded) # Also reverse game outs if still in same inning
+                    
+                    event = play.event_type.lower()
+                    if event in ['single', 'double', 'triple', 'homerun']:
+                        pitcher_entry.pitch_H = max(0, pitcher_entry.pitch_H - 1)
+                        if event == 'homerun':
+                            pitcher_entry.pitch_HR = max(0, pitcher_entry.pitch_HR - 1)
+                    elif event == 'walk':
+                        pitcher_entry.pitch_BB = max(0, pitcher_entry.pitch_BB - 1)
+                    elif event == 'strikeout':
+                        pitcher_entry.pitch_SO = max(0, pitcher_entry.pitch_SO - 1)
+                    
+                    if play.runs_scored > 0:
+                        pitcher_entry.pitch_R = max(0, pitcher_entry.pitch_R - play.runs_scored)
+                        pitcher_entry.pitch_ER = max(0, pitcher_entry.pitch_ER - play.runs_scored)
+                    
+                    pitcher_entry.save()
             except LineupEntry.DoesNotExist:
                 pass
 
