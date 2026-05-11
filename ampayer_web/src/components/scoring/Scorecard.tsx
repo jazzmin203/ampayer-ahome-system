@@ -327,12 +327,16 @@ export function Scorecard({ game, onPlayRecorded }: ScorecardProps) {
             return;
         }
 
+        if (!newPlayerTeam) return;
+
         setLoading(true);
         try {
             const payload = {
                 ...newPlayerData,
                 team: newPlayerTeam.id,
-                jersey_number: newPlayerData.jersey_number ? parseInt(newPlayerData.jersey_number) : null
+                jersey_number: (newPlayerData.jersey_number !== '' && newPlayerData.jersey_number !== null) 
+                    ? parseInt(newPlayerData.jersey_number) 
+                    : null
             };
 
             let newPlayer;

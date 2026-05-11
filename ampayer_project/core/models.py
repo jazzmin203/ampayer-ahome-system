@@ -161,7 +161,7 @@ class Player(models.Model):
     rbi = models.PositiveIntegerField(default=0)
 
     def __str__(self):
-        return f"#{self.jersey_number} {self.first_name} {self.last_name}"
+        return f"#{self.jersey_number if self.jersey_number is not None else ''} {self.first_name} {self.last_name}"
 
 
 # ==============================================================================
