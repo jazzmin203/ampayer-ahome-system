@@ -37,6 +37,8 @@ interface Game {
     home_score: number;
     away_score: number;
     lineups?: any[];
+    actual_start_time?: string;
+    actual_end_time?: string;
 }
 
 interface Player {
