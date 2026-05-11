@@ -715,7 +715,7 @@ export function Scorecard({ game, onPlayRecorded }: ScorecardProps) {
                             <h5 className="text-xs font-bold text-gray-500 uppercase">Puntuación por Entradas</h5>
                         </div>
                         <Button 
-                            size="xs" 
+                            size="sm" 
                             variant="ghost" 
                             className="text-[10px] h-6 px-2 text-blue-600 hover:bg-blue-50"
                             onClick={async () => {
