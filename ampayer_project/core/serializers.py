@@ -191,6 +191,9 @@ class GameListSerializer(serializers.ModelSerializer):
         ]
 
 class PlaySerializer(serializers.ModelSerializer):
+    batter = serializers.PrimaryKeyRelatedField(queryset=Player.objects.all(), required=False, allow_null=True)
+    pitcher = serializers.PrimaryKeyRelatedField(queryset=Player.objects.all(), required=False, allow_null=True)
+    
     class Meta:
         model = Play
         fields = '__all__'

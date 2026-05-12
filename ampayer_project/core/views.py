@@ -126,8 +126,8 @@ class SystemStatusView(APIView):
     
     def get(self, request):
         from .models import League, Team, Stadium, User, Category, Game, Player, Season
-        from django.db import connection
-        from django.db.models import Count, Q
+        from django.db import connection, models
+        from django.db.models import Count, Q, F
         import datetime
         
         user = request.user
@@ -180,19 +180,29 @@ class SystemStatusView(APIView):
             # Rankings by category
             rankings = []
             for cat in categories:
+                # Standings logic
                 cat_teams = teams.filter(category=cat).annotate(
-                    wins=Count('home_games', filter=Q(home_games__home_score__gt=0, home_games__status='finished')) + 
-                         Count('away_games', filter=Q(away_games__away_score__gt=0, away_games__status='finished'))
-                ).order_by('-wins')[:5]
+                    wins=Count('home_games', filter=Q(home_games__home_score__gt=models.F('home_games__away_score'), home_games__status='finished')) + 
+                         Count('away_games', filter=Q(away_games__away_score__gt=models.F('away_games__home_score'), away_games__status='finished')),
+                    losses=Count('home_games', filter=Q(home_games__away_score__gt=models.F('home_games__home_score'), home_games__status='finished')) + 
+                           Count('away_games', filter=Q(away_games__home_score__gt=models.F('away_games__away_score'), away_games__status='finished'))
+                ).order_by('-wins', 'losses')
                 
-                cat_players = players.filter(team__category=cat).order_by('-hr', '-rbi', '-avg')[:5]
+                # Top players by different metrics
+                top_hitters = players.filter(team__category=cat).order_by('-avg', '-hr')[:5]
+                top_pitchers = players.filter(team__category=cat).order_by('-wins_pitcher', '-so_pitcher')[:5]
                 
                 rankings.append({
                     'category': cat.name,
-                    'top_teams': [{'name': t.name, 'wins': getattr(t, 'wins', 0)} for t in cat_teams],
-                    'top_players': [{'name': p.first_name + ' ' + p.last_name, 'hr': p.hr, 'avg': p.avg} for p in cat_players]
+                    'standings': [{'name': t.name, 'wins': t.wins, 'losses': t.losses} for t in cat_teams],
+                    'top_hitters': [{'name': f"{p.first_name} {p.last_name}", 'avg': p.avg, 'hr': p.hr, 'rbi': p.rbi} for p in top_hitters],
+                    'top_pitchers': [{'name': f"{p.first_name} {p.last_name}", 'wins': p.wins_pitcher, 'so': p.so_pitcher} for p in top_pitchers]
                 })
             data['rankings'] = rankings
+            
+            # Recent and Upcoming Games for the President
+            data['recent_games'] = GameListSerializer(games.filter(status=Game.Status.FINISHED).order_by('-date', '-time')[:5], many=True).data
+            data['upcoming_games'] = GameListSerializer(games.filter(status=Game.Status.PENDING).order_by('date', 'time')[:5], many=True).data
 
         return JsonResponse(data)
 
@@ -647,12 +657,33 @@ class GameViewSet(viewsets.ModelViewSet):
         """
         Record a granular play and update score and game state (outs, inning).
         """
-        game = self.get_object()
-        serializer = PlaySerializer(data=request.data)
-        if serializer.is_valid():
-            play = serializer.save(game=game)
+        try:
+            game = self.get_object()
             
-            # --- Score Update ---
+            # Pre-processing: handle aliases or invalid IDs from client
+            data = request.data.copy()
+            
+            # Handle batter: if 0 or missing, try to find active one or leave None
+            if data.get('batter') == 0 or not data.get('batter'):
+                data['batter'] = None
+                
+            # Handle pitcher: if 0 or missing, try to find active one or leave None
+            if data.get('pitcher') == 0 or not data.get('pitcher'):
+                data['pitcher'] = None
+
+            # Handle event_type vs result alias
+            if 'result' in data and not data.get('event_type'):
+                data['event_type'] = data['result']
+
+            # Handle half vs half_inning alias
+            if 'half_inning' in data and not data.get('half'):
+                data['half'] = data['half_inning']
+
+            serializer = PlaySerializer(data=data)
+            if serializer.is_valid():
+                play = serializer.save(game=game)
+                
+                # --- Score Update ---
             if play.runs_scored > 0:
                 if play.half == 'top':
                     game.away_score += play.runs_scored
@@ -708,73 +739,85 @@ class GameViewSet(viewsets.ModelViewSet):
                             setattr(game, f"{base}_id", val)
 
             # 4. Handle Lineup Statistics (LineupEntry)
-            try:
-                # IMPORTANT: Find the ACTIVE lineup entry for the batter
-                lineup_entry = LineupEntry.objects.get(game=game, player=play.batter, is_active=True)
-                lineup_entry.PA += 1
-                event = play.event_type.lower()
-                
-                if event in ['single', 'double', 'triple', 'homerun']:
-                    lineup_entry.H += 1
-                    lineup_entry.AB += 1
-                    if event == 'single': lineup_entry.singles += 1
-                    elif event == 'double': lineup_entry.doubles += 1
-                    elif event == 'triple': lineup_entry.triples += 1
-                    elif event == 'homerun': 
-                        lineup_entry.HR += 1
-                        lineup_entry.R += 1
-                elif event == 'walk':
-                    lineup_entry.BB += 1
-                elif event == 'hit_by_pitch':
-                    lineup_entry.HBP += 1
-                elif 'out' in event or event == 'strikeout':
-                    if not request.data.get('is_sacrifice', False):
-                        lineup_entry.AB += 1
-                    if event == 'strikeout':
-                        lineup_entry.SO += 1
-                elif 'error' in event:
-                    lineup_entry.AB += 1
+            if play.batter:
+                try:
+                    # Find the ACTIVE lineup entry for the batter
+                    lineup_entry = LineupEntry.objects.filter(game=game, player=play.batter, is_active=True).first()
+                    if lineup_entry:
+                        lineup_entry.PA += 1
+                        event = play.event_type.lower()
+                        
+                        if event in ['single', 'double', 'triple', 'homerun']:
+                            lineup_entry.H += 1
+                            lineup_entry.AB += 1
+                            if event == 'single': lineup_entry.singles += 1
+                            elif event == 'double': lineup_entry.doubles += 1
+                            elif event == 'triple': lineup_entry.triples += 1
+                            elif event == 'homerun': 
+                                lineup_entry.HR += 1
+                                lineup_entry.R += 1
+                        elif event in ['walk', 'bb']:
+                            lineup_entry.BB += 1
+                        elif event == 'hit_by_pitch':
+                            lineup_entry.HBP += 1
+                        elif 'out' in event or event == 'strikeout' or event == 'k':
+                            if not request.data.get('is_sacrifice', False):
+                                lineup_entry.AB += 1
+                            if event == 'strikeout' or event == 'k':
+                                lineup_entry.SO += 1
+                        elif 'error' in event:
+                            lineup_entry.AB += 1
 
-                if play.runs_scored > 0:
-                    lineup_entry.RBI += play.runs_scored
+                        if play.runs_scored > 0:
+                            lineup_entry.RBI += play.runs_scored
 
-                lineup_entry.save()
-            except LineupEntry.DoesNotExist:
-                pass
+                        lineup_entry.save()
+                except Exception as e:
+                    print(f"Error updating batter stats: {e}")
 
             # 5. Handle Pitcher Statistics
-            try:
-                # Find the active pitcher entry for the DEFENSIVE team
-                # Defensive team is opposite of play.half (top half -> home team is defensive)
+            # Infer pitcher if not provided
+            effective_pitcher = play.pitcher
+            if not effective_pitcher:
+                # Find the current active pitcher for the defensive team
                 pitcher_team = game.local_team if play.half == 'top' else game.visitor_team
-                pitcher_entry = LineupEntry.objects.get(game=game, team=pitcher_team, player=play.pitcher, is_active=True)
-                
-                pitcher_entry.IP_outs += play.outs_recorded
-                
-                event = play.event_type.lower()
-                if event in ['single', 'double', 'triple', 'homerun']:
-                    pitcher_entry.pitch_H += 1
-                    if event == 'homerun':
-                        pitcher_entry.pitch_HR += 1
-                elif event == 'walk':
-                    pitcher_entry.pitch_BB += 1
-                elif event == 'strikeout':
-                    pitcher_entry.pitch_SO += 1
-                
-                if play.runs_scored > 0:
-                    pitcher_entry.pitch_R += play.runs_scored
-                    # For simplicity, assuming all runs are earned for now. 
-                    # Real logic would check if errors occurred.
-                    pitcher_entry.pitch_ER += play.runs_scored
-                
-                pitcher_entry.save()
-            except LineupEntry.DoesNotExist:
-                pass
+                p_entry = LineupEntry.objects.filter(game=game, team=pitcher_team, field_position='P', is_active=True).first()
+                if p_entry:
+                    effective_pitcher = p_entry.player
+                    play.pitcher = effective_pitcher
+                    play.save()
+
+            if effective_pitcher:
+                try:
+                    pitcher_team = game.local_team if play.half == 'top' else game.visitor_team
+                    pitcher_entry = LineupEntry.objects.filter(game=game, team=pitcher_team, player=effective_pitcher, is_active=True).first()
+                    
+                    if pitcher_entry:
+                        pitcher_entry.IP_outs += play.outs_recorded
+                        
+                        event = play.event_type.lower()
+                        if event in ['single', 'double', 'triple', 'homerun']:
+                            pitcher_entry.pitch_H += 1
+                            if event == 'homerun':
+                                pitcher_entry.pitch_HR += 1
+                        elif event in ['walk', 'bb']:
+                            pitcher_entry.pitch_BB += 1
+                        elif event == 'strikeout' or event == 'k':
+                            pitcher_entry.pitch_SO += 1
+                        
+                        if play.runs_scored > 0:
+                            pitcher_entry.pitch_R += play.runs_scored
+                            pitcher_entry.pitch_ER += play.runs_scored
+                        
+                        pitcher_entry.save()
+                except Exception as e:
+                    print(f"Error updating pitcher stats: {e}")
 
             game.save()
-            
             return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @action(detail=True, methods=['post'])
     def delete_play(self, request, pk=None):

@@ -567,7 +567,7 @@ export function Scorecard({ game, onPlayRecorded }: ScorecardProps) {
                             <th className="p-2 border border-gray-300 w-10">#</th>
                             <th className="p-2 border border-gray-300 text-left">Jugador / Sustituciones</th>
                             <th className="p-2 border border-gray-300 w-14">Pos</th>
-                            {Array.from({ length: Math.max(9, game.current_inning) }, (_, i) => i + 1).map(i => (
+                            {Array.from({ length: Math.max(1, game.current_inning) }, (_, i) => i + 1).map(i => (
                                 <th key={i} className="p-2 border border-gray-300 w-12 text-center bg-blue-50/50">{i}</th>
                             ))}
                             <th className="p-2 border border-gray-300 w-10 bg-gray-100 italic">AB</th>
@@ -714,7 +714,7 @@ export function Scorecard({ game, onPlayRecorded }: ScorecardProps) {
                                             placeholder="-"
                                         />
                                     </td>
-                                    {Array.from({ length: Math.max(9, game.current_inning) }, (_, i) => i + 1).map(i => (
+                                    {Array.from({ length: Math.max(1, game.current_inning) }, (_, i) => i + 1).map(i => (
                                         <ScorecardCell
                                             key={i}
                                             plays={slotPlays}
@@ -837,7 +837,7 @@ export function Scorecard({ game, onPlayRecorded }: ScorecardProps) {
                         <thead>
                             <tr className="bg-gray-800 text-white text-[10px]">
                                 <th className="p-2 text-left w-32">EQUIPO</th>
-                                {Array.from({ length: Math.max(9, game.current_inning) }, (_, i) => i + 1).map(i => (
+                                {Array.from({ length: Math.max(1, game.current_inning) }, (_, i) => i + 1).map(i => (
                                     <th key={i} className="p-2 border-l border-gray-700">{i}</th>
                                 ))}
                                 <th className="p-2 border-l border-gray-700 bg-gray-700 w-10">R</th>
@@ -848,7 +848,7 @@ export function Scorecard({ game, onPlayRecorded }: ScorecardProps) {
                         <tbody className="text-sm font-bold">
                             <tr className="border-b border-gray-100">
                                 <td className="p-2 text-left text-orange-600 bg-gray-50">{game.visitor_team_name}</td>
-                                {Array.from({ length: Math.max(9, game.current_inning) }, (_, i) => i + 1).map(i => {
+                                {Array.from({ length: Math.max(1, game.current_inning) }, (_, i) => i + 1).map(i => {
                                     const runs = game.plays?.filter(p => p.inning === i && p.half === 'top').reduce((sum, p) => sum + (p.runs_scored || 0), 0);
                                     return <td key={i} className="p-2 border-l border-gray-100">{i > game.current_inning ? '-' : runs}</td>;
                                 })}
@@ -858,7 +858,7 @@ export function Scorecard({ game, onPlayRecorded }: ScorecardProps) {
                             </tr>
                             <tr>
                                 <td className="p-2 text-left text-blue-700 bg-gray-50">{game.local_team_name}</td>
-                                {Array.from({ length: Math.max(9, game.current_inning) }, (_, i) => i + 1).map(i => {
+                                {Array.from({ length: Math.max(1, game.current_inning) }, (_, i) => i + 1).map(i => {
                                     const runs = game.plays?.filter(p => p.inning === i && p.half === 'bottom').reduce((sum, p) => sum + (p.runs_scored || 0), 0);
                                     const isCompleted = i < game.current_inning || (i === game.current_inning && game.inning_half === 'bottom');
                                     return <td key={i} className="p-2 border-l border-gray-100">{!isCompleted ? '-' : runs}</td>;

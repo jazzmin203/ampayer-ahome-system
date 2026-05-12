@@ -226,7 +226,7 @@ def generate_digital_acta(game: Game):
 
     # 3. Line Score (Carreras por Entrada)
     elements.append(Paragraph("PUNTUACIÓN POR ENTRADAS", section_style))
-    innings_count = max(9, game.current_inning)
+    innings_count = max(1, game.current_inning)
     line_score_headers = ['EQUIPO'] + [str(i) for i in range(1, innings_count + 1)] + ['R', 'H', 'E']
     
     def get_runs_for_team(side):
