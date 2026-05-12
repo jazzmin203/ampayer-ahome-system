@@ -45,25 +45,40 @@ export default function Leagues() {
     };
 
     const handleSave = async () => {
+        if (!name) return alert("El nombre de la liga es obligatorio");
+        
         try {
             const data = { 
                 name, 
                 description: description || "",
                 city: city || "Los Mochis",
-                president: president ? parseInt(president) : null
+                president: president ? parseInt(president) : null,
+                slug: name.toLowerCase().trim().replace(/\s+/g, '-') // Generate a basic slug
             };
 
             if (editingId) {
                 await updateLeague(editingId, data);
+                alert("Liga actualizada correctamente");
             } else {
                 await createLeague(data);
+                alert("Liga creada correctamente");
             }
 
             resetForm();
             loadLeagues();
         } catch (err) {
             console.error("ERROR:", err.response?.data || err.message);
-            alert("Error al guardar la liga: " + JSON.stringify(err.response?.data || err.message));
+            let msg = "Error al guardar la liga: ";
+            if (err.response?.data) {
+                if (typeof err.response.data === 'object') {
+                    msg += Object.entries(err.response.data).map(([k, v]) => `${k}: ${v}`).join(', ');
+                } else {
+                    msg += err.response.data;
+                }
+            } else {
+                msg += err.message;
+            }
+            alert(msg);
         }
     };
 

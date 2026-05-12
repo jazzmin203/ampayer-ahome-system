@@ -7,3 +7,6 @@ export const createStadium = (data) =>
 
 export const deleteStadium = (id) =>
     api.delete(`stadiums/${id}/`);
+
+export const updateStadium = (id, data) =>
+    api.put(`stadiums/${id}/`, data);

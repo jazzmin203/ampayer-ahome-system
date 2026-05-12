@@ -112,6 +112,7 @@ class Stadium(models.Model):
     """
     Venues for games.
     """
+    league = models.ForeignKey(League, on_delete=models.CASCADE, related_name="stadiums", null=True, blank=True)
     name = models.CharField(max_length=200)
     address = models.TextField(blank=True)
     latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)

@@ -7,3 +7,6 @@ export const createTeam = (data) =>
 
 export const deleteTeam = (id) =>
     api.delete(`teams/${id}/`);
+
+export const updateTeam = (id, data) =>
+    api.put(`teams/${id}/`, data);

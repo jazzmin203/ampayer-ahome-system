@@ -8,7 +8,7 @@ export default function Teams() {
     const [categoryId, setCategoryId] = useState("");
     const [name, setName] = useState("");
     const [shortName, setShortName] = useState("");
-    const [coach, setCoach] = useState("");
+    const [editingId, setEditingId] = useState(null);
 
     const loadData = async () => {
         try {
@@ -16,7 +16,7 @@ export default function Teams() {
             setTeams(t.data);
             const c = await api.get("categories/");
             setCategories(c.data);
-            if (c.data.length === 1) setCategoryId(c.data[0].id);
+            if (c.data.length === 1 && !categoryId) setCategoryId(c.data[0].id);
         } catch (e) {
             console.error(e);
         }
@@ -26,28 +26,49 @@ export default function Teams() {
         loadData();
     }, []);
 
-    const handleCreate = async () => {
+    const resetForm = () => {
+        setName("");
+        setShortName("");
+        setCoach("");
+        setCategoryId("");
+        setEditingId(null);
+    }
+
+    const handleSave = async () => {
         if (!categoryId) return alert("Selecciona una liga/categoría");
         if (!name) return alert("El nombre es requerido");
 
         try {
-            // Team model requiere 'category' y opcionalmente 'league'
-            // El backend asocia automáticamente la liga mediante la categoría
-            await createTeam({
+            const payload = {
                 category: parseInt(categoryId),
                 name,
                 short_name: shortName,
                 manager_name: coach,
-            });
+            };
 
-            setName("");
-            setShortName("");
-            setCoach("");
+            if (editingId) {
+                const { updateTeam } = await import("../../api/teamApi");
+                await updateTeam(editingId, payload);
+                alert("Equipo actualizado");
+            } else {
+                await createTeam(payload);
+                alert("Equipo creado");
+            }
+
+            resetForm();
             loadData();
         } catch (e) {
             console.error(e);
-            alert("Error al crear equipo");
+            alert("Error al guardar equipo");
         }
+    };
+
+    const handleEdit = (t) => {
+        setEditingId(t.id);
+        setName(t.name);
+        setShortName(t.short_name);
+        setCoach(t.manager_name);
+        setCategoryId(t.category);
     };
 
     const handleDelete = async (id) => {
@@ -108,9 +129,16 @@ export default function Teams() {
                     />
                 </div>
 
-                <button onClick={handleCreate} className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-                    Crear Equipo
-                </button>
+                <div className="flex gap-2">
+                    <button onClick={handleSave} className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 w-full">
+                        {editingId ? "Actualizar Equipo" : "Crear Equipo"}
+                    </button>
+                    {editingId && (
+                        <button onClick={resetForm} className="bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-500 w-full">
+                            Cancelar
+                        </button>
+                    )}
+                </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -120,9 +148,14 @@ export default function Teams() {
                             <p className="font-bold">{t.name} <span className="text-gray-500 text-sm">({t.short_name})</span></p>
                             <p className="text-sm text-gray-600">Manager: {t.manager_name || 'N/A'}</p>
                         </div>
-                        <button onClick={() => handleDelete(t.id)} className="text-red-500 hover:text-red-700">
-                            Eliminar
-                        </button>
+                        <div className="space-x-2">
+                            <button onClick={() => handleEdit(t)} className="text-blue-600 hover:underline text-sm">
+                                Editar
+                            </button>
+                            <button onClick={() => handleDelete(t.id)} className="text-red-500 hover:text-red-700 text-sm">
+                                Eliminar
+                            </button>
+                        </div>
                     </div>
                 ))}
             </div>
